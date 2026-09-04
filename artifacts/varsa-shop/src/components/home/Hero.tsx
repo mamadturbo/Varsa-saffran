@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { HERO_SLIDES, toFaDigits } from '@/lib/site';
+import { useTheme } from '@/lib/theme';
 
 interface HeroProps {
   onNavigate: (page: string) => void;
@@ -8,6 +9,7 @@ interface HeroProps {
 
 export function Hero({ onNavigate }: HeroProps) {
   const [index, setIndex] = useState(0);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -42,13 +44,17 @@ export function Hero({ onNavigate }: HeroProps) {
       <div className="relative z-10 flex h-full items-center">
         <div className="container-luxe">
           <div className="max-w-3xl">
-            <span className="inline-flex animate-fade-in items-center gap-2 rounded-full border border-gold-500/30 bg-ink-950/40 px-4 py-2 text-xs tracking-[0.2em] text-gold-200 backdrop-blur-sm">
+            <span
+              className={`inline-flex animate-fade-in items-center gap-2 rounded-full border border-gold-500/30 bg-ink-950/40 px-4 py-2 text-xs tracking-[0.2em] backdrop-blur-sm ${
+                theme === 'light' ? 'text-gold-800' : 'text-gold-200'
+              }`}
+            >
               {HERO_SLIDES[index].eyebrow}
             </span>
 
             <h1
               key={`title-${index}`}
-              className="mt-8 animate-fade-up font-display text-4xl font-bold leading-[1.3] text-white text-balance sm:text-5xl lg:text-6xl"
+              className="mt-8 animate-fade-up font-display text-4xl font-bold leading-[1.3] text-on-image text-balance sm:text-5xl lg:text-6xl"
             >
               {HERO_SLIDES[index].title.split('؛').map((part, i) => (
                 <span key={i} className="block first:mb-2">
@@ -59,7 +65,7 @@ export function Hero({ onNavigate }: HeroProps) {
 
             <p
               key={`sub-${index}`}
-              className="mt-8 max-w-xl animate-fade-up text-lg leading-9 text-white/85 text-pretty [animation-delay:0.15s]"
+              className="mt-8 max-w-xl animate-fade-up text-lg leading-9 text-on-image/85 text-pretty [animation-delay:0.15s]"
             >
               {HERO_SLIDES[index].subtitle}
             </p>
@@ -85,7 +91,11 @@ export function Hero({ onNavigate }: HeroProps) {
             key={i}
             onClick={() => setIndex(i)}
             className={`h-1.5 rounded-full transition-all duration-500 ease-luxe ${
-              i === index ? 'w-8 bg-gold-400' : 'w-3 bg-white/40 hover:bg-white/65'
+              i === index
+                ? 'w-8 bg-gold-400'
+                : theme === 'light'
+                  ? 'w-3 bg-ink-900/30 hover:bg-ink-900/50'
+                  : 'w-3 bg-white/40 hover:bg-white/65'
             }`}
             aria-label={`اسلاید ${toFaDigits(i + 1)}`}
           />

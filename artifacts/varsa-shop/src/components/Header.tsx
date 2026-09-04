@@ -54,7 +54,7 @@ export function Header({ page, onNavigate }: HeaderProps) {
             <span className="flex flex-col items-start leading-none">
               <span
                 className={`font-display text-2xl font-bold ${
-                  scrolled ? 'text-cream-50' : 'text-white'
+                  scrolled ? 'text-cream-50' : 'text-on-image'
                 }`}
               >
                 ورسا
@@ -74,7 +74,7 @@ export function Header({ page, onNavigate }: HeaderProps) {
                     ? 'text-gold-200'
                     : scrolled
                       ? 'text-cream-200/80 hover:text-cream-50'
-                      : 'text-white/80 hover:text-white'
+                      : 'text-on-image/80 hover:text-on-image'
                 }`}
               >
                 {item.label}

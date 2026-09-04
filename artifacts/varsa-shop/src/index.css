@@ -35,6 +35,7 @@
   --color-cream-300: rgb(var(--cream-300) / <alpha-value>);
   --color-cream-400: rgb(var(--cream-400) / <alpha-value>);
   --color-cream-500: rgb(var(--cream-500) / <alpha-value>);
+  --color-on-image: rgb(var(--on-image) / <alpha-value>);
 
   --font-display: 'Noto Nastaliq Urdu', Vazirmatn, serif;
   --font-sans: Vazirmatn, system-ui, sans-serif;
@@ -105,7 +106,8 @@
     --surface-glass: 255 255 255;
     --surface-tint: 21 23 28;
     --bg-grid: 185 138 69;
-    --img-overlay: 21 23 28;
+    --img-overlay: 255 252 245;
+    --on-image: 21 23 28;
   }
 
   /* Dark mode keeps the source contrast pattern and the exact dark roles. */
@@ -128,6 +130,7 @@
     --surface-tint: 255 255 255;
     --bg-grid: 185 138 69;
     --img-overlay: 10 10 10;
+    --on-image: 255 255 255;
   }
 
   * {
