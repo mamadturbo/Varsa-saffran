@@ -13,10 +13,12 @@ import { JournalPage } from '@/pages/JournalPage';
 import { ArticlePage } from '@/pages/ArticlePage';
 import { AboutPage } from '@/pages/AboutPage';
 import { ContactPage } from '@/pages/ContactPage';
+import { AdminPage } from '@/pages/AdminPage';
 
 type Page = 'home' | 'shop' | 'journal' | 'article' | 'about' | 'contact';
 
 export default function App() {
+  const isAdminPath = window.location.pathname.replace(/\/+$/, '') === '/admin';
   const [page, setPage] = useState<Page>('home');
   const [articleSlug, setArticleSlug] = useState<string>('');
   const [openProduct, setOpenProduct] = useState<Product | null>(null);
@@ -41,6 +43,14 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [page]);
+
+  if (isAdminPath) {
+    return (
+      <ThemeProvider>
+        <AdminPage />
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, Loader2, X } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { formatPrice, toFaDigits } from '@/lib/site';
+import { getApiErrorMessage, submitOrder } from '@/lib/orders-api';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -12,10 +13,14 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const { items, total, clear } = useCart();
   const [step, setStep] = useState<'form' | 'loading' | 'done'>('form');
   const [form, setForm] = useState({ name: '', phone: '', address: '' });
+  const [orderNumber, setOrderNumber] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setStep('form');
+      setError('');
+      setOrderNumber('');
     }
   }, [isOpen]);
 
@@ -28,13 +33,30 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStep('loading');
-    setTimeout(() => {
+
+    try {
+      const result = await submitOrder({
+        customerName: form.name,
+        phone: form.phone,
+        address: form.address,
+        items: items.map(({ product, quantity }) => ({
+          productId: product.id,
+          name: product.name,
+          quantity,
+          unitPrice: product.price,
+          imageUrl: product.image_url,
+        })),
+      });
+      setOrderNumber(result.orderNumber);
       setStep('done');
       clear();
-    }, 1600);
+    } catch (submitError) {
+      setError(getApiErrorMessage(submitError, 'ثبت سفارش انجام نشد. لطفاً دوباره تلاش کنید.'));
+      setStep('form');
+    }
   };
 
   return (
@@ -58,6 +80,9 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
               از اعتماد شما سپاسگزاریم. سفارش شما با تیپاکس و بسته‌بندی ضربه‌گیر
               ارسال خواهد شد؛ ظرف ۲ تا ۵ روز کاری به دست شما می‌رسد.
             </p>
+            <div className="rounded-xl border border-gold-500/20 bg-gold-500/10 px-4 py-3 text-sm text-gold-200">
+              کد سفارش: <span className="font-bold tracking-wider">{orderNumber}</span>
+            </div>
             <button onClick={onClose} className="btn-solid mt-4">
               بازگشت به فروشگاه
             </button>
@@ -91,6 +116,11 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
             </div>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              {error && (
+                <div className="rounded-xl border border-crimson-500/30 bg-crimson-500/10 px-4 py-3 text-sm leading-6 text-crimson-300">
+                  {error}
+                </div>
+              )}
               <div>
                 <label className="label-luxe" htmlFor="ck-name">نام و نام خانوادگی</label>
                 <input
