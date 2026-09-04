@@ -118,19 +118,20 @@
     --ink-900: 21 23 28;
     --ink-950: 14 16 20;
 
-    --cream-50: 255 255 255;
-    --cream-100: 245 240 230;
-    --cream-200: 236 228 211;
-    --cream-300: 221 208 184;
-    --cream-400: 202 189 160;
-    --cream-500: 175 165 140;
+    /* Soft ivory text avoids the glare of pure white in dark mode. */
+    --cream-50: 246 238 219;
+    --cream-100: 240 231 214;
+    --cream-200: 232 219 195;
+    --cream-300: 218 201 171;
+    --cream-400: 198 179 145;
+    --cream-500: 172 153 119;
 
     --overlay: 10 10 10;
     --surface-glass: 255 255 255;
     --surface-tint: 255 255 255;
     --bg-grid: 185 138 69;
     --img-overlay: 10 10 10;
-    --on-image: 255 255 255;
+    --on-image: 246 238 219;
   }
 
   * {
