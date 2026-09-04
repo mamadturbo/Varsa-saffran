@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Varsa Saffron Shop"
+description = "A Persian RTL saffron storefront with a warm light theme, product browsing, journal content, cart, checkout, and contact flows."
+version = "1.0.0"
+id = "artifacts/varsa-shop"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26206
+
+[services.development]
+run = "pnpm --filter @workspace/varsa-shop run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/varsa-shop", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/varsa-shop/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26206"
+BASE_PATH = "/"

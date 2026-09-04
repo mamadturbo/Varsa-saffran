@@ -1,0 +1,1 @@
+- [Varsa theme migration](tailwind-v4-varsat-theme.md) — the uploaded Bolt frontend uses Tailwind v3-style semantic classes inside a Tailwind v4 artifact and needs CSS @theme tokens.
