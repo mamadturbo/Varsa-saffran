@@ -300,6 +300,11 @@
   .img-overlay-hero-side {
     background: linear-gradient(to left, rgb(var(--img-overlay) / 0.7), transparent, rgb(var(--img-overlay) / 0.3));
   }
+  /* Keep the light Hero photography clear instead of washing it with ivory. */
+  html:not(.dark) .img-overlay-hero,
+  html:not(.dark) .img-overlay-hero-side {
+    background: transparent;
+  }
   .img-overlay-cta {
     background: linear-gradient(to top, rgb(var(--img-overlay) / 0.92), rgb(var(--img-overlay) / 0.6), rgb(var(--img-overlay) / 0.8));
   }
