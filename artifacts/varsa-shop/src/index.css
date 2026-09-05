@@ -24,18 +24,18 @@
   --color-crimson-900: #480000;
   --color-crimson-950: #2e0000;
 
-  --color-ink-600: rgb(var(--ink-600) / <alpha-value>);
-  --color-ink-700: rgb(var(--ink-700) / <alpha-value>);
-  --color-ink-800: rgb(var(--ink-800) / <alpha-value>);
-  --color-ink-900: rgb(var(--ink-900) / <alpha-value>);
-  --color-ink-950: rgb(var(--ink-950) / <alpha-value>);
-  --color-cream-50: rgb(var(--cream-50) / <alpha-value>);
-  --color-cream-100: rgb(var(--cream-100) / <alpha-value>);
-  --color-cream-200: rgb(var(--cream-200) / <alpha-value>);
-  --color-cream-300: rgb(var(--cream-300) / <alpha-value>);
-  --color-cream-400: rgb(var(--cream-400) / <alpha-value>);
-  --color-cream-500: rgb(var(--cream-500) / <alpha-value>);
-  --color-on-image: rgb(var(--on-image) / <alpha-value>);
+  --color-ink-600: rgb(var(--ink-600) / 1);
+  --color-ink-700: rgb(var(--ink-700) / 1);
+  --color-ink-800: rgb(var(--ink-800) / 1);
+  --color-ink-900: rgb(var(--ink-900) / 1);
+  --color-ink-950: rgb(var(--ink-950) / 1);
+  --color-cream-50: rgb(var(--cream-50) / 1);
+  --color-cream-100: rgb(var(--cream-100) / 1);
+  --color-cream-200: rgb(var(--cream-200) / 1);
+  --color-cream-300: rgb(var(--cream-300) / 1);
+  --color-cream-400: rgb(var(--cream-400) / 1);
+  --color-cream-500: rgb(var(--cream-500) / 1);
+  --color-on-image: rgb(var(--on-image) / 1);
 
   --font-display: 'Noto Nastaliq Urdu', Vazirmatn, serif;
   --font-sans: Vazirmatn, system-ui, sans-serif;
