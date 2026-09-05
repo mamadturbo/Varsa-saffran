@@ -1,4 +1,4 @@
-export const CATEGORIES = ['همه', 'سوپر نگین', 'نگین', 'شبه نگین', 'سرگل', 'پوشال', 'رشته', 'هدیه'] as const;
+export const CATEGORIES = ['همه', 'سوپر نگین', 'نگین', 'شبه نگین', 'پوشال'] as const;
 
 export const SITE = {
   name: 'ورسا',

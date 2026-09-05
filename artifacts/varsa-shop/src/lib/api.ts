@@ -8,7 +8,10 @@ export async function fetchProducts(): Promise<Product[]> {
     .select('*')
     .order('sort_order', { ascending: true });
 
-  const remoteProducts = error ? [] : ((data ?? []) as Product[]);
+  const activeSlugs = new Set(LOCAL_PRODUCTS.map((product) => product.slug));
+  const remoteProducts = error
+    ? []
+    : ((data ?? []) as Product[]).filter((product) => activeSlugs.has(product.slug));
   const productsBySlug = new Map(remoteProducts.map((product) => [product.slug, product]));
 
   for (const product of LOCAL_PRODUCTS) {

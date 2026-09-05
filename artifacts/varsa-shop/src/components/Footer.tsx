@@ -21,11 +21,10 @@ const COLS = [
   {
     title: 'دسته‌بندی‌ها',
     links: [
+      { id: 'shop', label: 'زعفران سوپر نگین' },
       { id: 'shop', label: 'زعفران نگین' },
-      { id: 'shop', label: 'زعفران سرگل' },
+      { id: 'shop', label: 'زعفران شبه نگین' },
       { id: 'shop', label: 'زعفران پوشال' },
-      { id: 'shop', label: 'زعفران رشته' },
-      { id: 'shop', label: 'پک‌های هدیه' },
     ],
   },
 ];
