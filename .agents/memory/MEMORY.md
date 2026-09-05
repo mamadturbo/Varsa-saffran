@@ -1,1 +1,2 @@
 - [Varsa theme migration](tailwind-v4-varsat-theme.md) — the uploaded Bolt frontend uses Tailwind v3-style semantic classes inside a Tailwind v4 artifact and needs CSS @theme tokens.
+- [Catalog write access](supabase-catalog-write.md) — the storefront's public Supabase client is read-only; local catalog entries merge over remote rows for product additions.

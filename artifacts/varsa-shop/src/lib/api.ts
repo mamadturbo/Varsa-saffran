@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { LOCAL_PRODUCTS } from './catalog';
 import type { Article, ContactMessage, Product } from './types';
 
 export async function fetchProducts(): Promise<Product[]> {
@@ -6,18 +7,20 @@ export async function fetchProducts(): Promise<Product[]> {
     .from('products')
     .select('*')
     .order('sort_order', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as Product[];
+
+  const remoteProducts = error ? [] : ((data ?? []) as Product[]);
+  const productsBySlug = new Map(remoteProducts.map((product) => [product.slug, product]));
+
+  for (const product of LOCAL_PRODUCTS) {
+    productsBySlug.set(product.slug, product);
+  }
+
+  return [...productsBySlug.values()].sort((a, b) => a.sort_order - b.sort_order);
 }
 
 export async function fetchFeaturedProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_featured', true)
-    .order('sort_order', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as Product[];
+  const products = await fetchProducts();
+  return products.filter((product) => product.is_featured);
 }
 
 export async function fetchArticles(): Promise<Article[]> {

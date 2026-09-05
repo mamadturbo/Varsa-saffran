@@ -1,4 +1,11 @@
-export type ProductCategory = 'نگین' | 'سرگل' | 'پوشال' | 'رشته' | 'هدیه';
+export type ProductCategory =
+  | 'سوپر نگین'
+  | 'نگین'
+  | 'شبه نگین'
+  | 'سرگل'
+  | 'پوشال'
+  | 'رشته'
+  | 'هدیه';
 
 export interface Product {
   id: string;
