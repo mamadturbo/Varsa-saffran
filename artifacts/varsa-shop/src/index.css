@@ -88,12 +88,12 @@
     --brand-accent: 255 232 184;
     --brand-border: 185 138 69;
 
-    /* Light presentation: warm parchment background, softened surfaces, ink text. */
+    /* Light presentation: saffron background, softened surfaces, ink text. */
     --ink-600: 216 196 164;
-    --ink-700: 247 238 219;
-    --ink-800: 241 226 197;
-    --ink-900: 243 232 210;
-    --ink-950: 235 217 182;
+    --ink-700: 255 239 208;
+    --ink-800: 255 226 177;
+    --ink-900: 250 204 130;
+    --ink-950: 247 194 105;
 
     --cream-50: 21 23 28;
     --cream-100: 35 36 31;
@@ -103,7 +103,7 @@
     --cream-500: 170 160 143;
 
     --overlay: 21 23 28;
-    --surface-glass: 243 232 210;
+    --surface-glass: 250 204 130;
     --surface-tint: 21 23 28;
     --bg-grid: 185 138 69;
     --img-overlay: 255 252 245;
