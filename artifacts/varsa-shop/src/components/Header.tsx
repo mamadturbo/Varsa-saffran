@@ -1,14 +1,17 @@
-import { useEffect } from 'react';
-import { Menu, Moon, ShoppingBag, Sun, X } from 'lucide-react';
-import { SITE } from '@/lib/site';
+import { pagePath } from '@/lib/routes';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'wouter';
+import { Menu, Moon, ShoppingBag, Sun, X, UserRound } from 'lucide-react';
+import { SITE, toFaDigits } from '@/lib/site';
+import { useStoreContact, useShippingInfo } from '@/lib/store-content';
 import { useCart } from '@/lib/cart';
 import { useTheme } from '@/lib/theme';
 import { useScrolled } from '@/lib/hooks';
-import { VarsaMark } from './Brand';
+import { VarsaLogo } from './Brand';
+import { StoreDialog, StoreDialogTitle } from './StoreDialog';
 
 interface HeaderProps {
   page: string;
-  onNavigate: (page: string) => void;
 }
 
 const NAV = [
@@ -19,62 +22,54 @@ const NAV = [
   { id: 'contact', label: 'تماس و ارسال' },
 ];
 
-export function Header({ page, onNavigate }: HeaderProps) {
+export function Header({ page }: HeaderProps) {
+  const CONTACT = useStoreContact();
+  const shipping = useShippingInfo();
   const scrolled = useScrolled(30);
-  const { count, open } = useCart();
+  const { count, open, isOpen: cartOpen } = useCart();
   const { theme, toggle } = useTheme();
 
-  useEffect(() => {
-    document.body.style.overflow = scrolled ? '' : '';
-  }, [scrolled]);
 
-  const go = (id: string) => {
-    onNavigate(id);
-    const menu = document.getElementById('mobile-menu');
-    menu?.classList.add('translate-x-full');
-  };
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuTitle = useRef<HTMLHeadingElement>(null);
+  const menuNavigated = useRef(false);
+  const closeMenu = () => setMenuOpen(false);
+  const navigateFromMenu = () => { menuNavigated.current = true; setMenuOpen(false); };
+  useEffect(() => { setMenuOpen(false); }, [page]);
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 1280px)');
+    const resized = () => { if (desktop.matches) setMenuOpen(false); };
+    desktop.addEventListener('change', resized);
+    return () => desktop.removeEventListener('change', resized);
+  }, []);
 
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-50 transition-all duration-700 ease-luxe ${
+        className={`store-header fixed inset-x-0 top-0 z-50 bg-ink-900/95 backdrop-blur-xl transition-all duration-700 ease-luxe ${
           scrolled
             ? 'bg-ink-900/85 backdrop-blur-xl border-b border-gold-500/15 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]'
-            : 'bg-transparent'
+            : ''
         }`}
       >
-        <div className="container-luxe flex h-20 items-center justify-between gap-4">
+        <div className="container-luxe flex h-20 items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
-          <button
-            onClick={() => go('home')}
-            className="group flex items-center gap-3"
+          <Link href="/" onClick={closeMenu}
+            data-focus-fallback=""
+            className="group flex shrink-0 items-center gap-2 sm:gap-3"
             aria-label="ورسا — صفحه نخست"
           >
-            <VarsaMark className="h-10 w-10 transition-transform duration-700 ease-luxe group-hover:rotate-[18deg]" />
-            <span className="flex flex-col items-start leading-none">
-              <span
-                className={`font-display text-2xl font-bold ${
-                  scrolled ? 'text-cream-50' : 'text-on-image'
-                }`}
-              >
-                ورسا
-              </span>
-              <span className="mt-1 text-[10px] tracking-[0.3em] text-gold-400/80">VARSA</span>
-            </span>
-          </button>
+            <VarsaLogo aria-hidden="true" className="h-14 w-[90px] shrink-0 sm:h-16 sm:w-[104px]" />
+          </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden items-center gap-1 lg:flex">
+          <nav aria-label="ناوبری اصلی" className="hidden items-center gap-1 xl:flex">
             {NAV.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => go(item.id)}
-                className={`relative rounded-full px-5 py-2 text-sm font-medium transition-all duration-500 ease-luxe ${
+              <Link key={item.id} href={pagePath(item.id)} onClick={closeMenu} aria-current={page === item.id ? "page" : undefined}
+                className={`relative inline-flex min-h-11 items-center rounded-full px-5 py-2 text-sm font-medium transition-all duration-500 ease-luxe ${
                   page === item.id
-                    ? 'text-gold-200'
-                    : scrolled
-                      ? 'text-cream-200/80 hover:text-cream-50'
-                      : 'text-on-image/80 hover:text-on-image'
+                    ? 'text-accent'
+                    : 'text-cream-200 hover:text-cream-50'
                 }`}
               >
                 {item.label}
@@ -83,15 +78,16 @@ export function Header({ page, onNavigate }: HeaderProps) {
                     page === item.id ? 'opacity-100' : 'opacity-0'
                   }`}
                 />
-              </button>
+              </Link>
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <Link href="/account" aria-label="حساب کاربری من" className="flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/25 text-accent"><UserRound className="h-5 w-5" strokeWidth={1.5}/></Link>
             {/* Theme toggle */}
             <button
               onClick={toggle}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/25 text-gold-200 transition-all duration-500 ease-luxe hover:border-gold-400 hover:bg-gold-500/10 hover:text-gold-100"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/25 text-accent transition-all duration-500 ease-luxe hover:border-gold-400 hover:bg-gold-500/10 hover:text-accent"
               aria-label={theme === 'dark' ? 'حالت روشن' : 'حالت تیره'}
             >
               {theme === 'dark' ? (
@@ -104,12 +100,15 @@ export function Header({ page, onNavigate }: HeaderProps) {
             {/* Cart */}
             <button
               onClick={open}
-              className="relative flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/25 text-gold-200 transition-all duration-500 ease-luxe hover:border-gold-400 hover:bg-gold-500/10 hover:text-gold-100"
+              className="relative flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/25 text-accent transition-all duration-500 ease-luxe hover:border-gold-400 hover:bg-gold-500/10 hover:text-accent"
               aria-label="سبد خرید"
+              aria-haspopup="dialog"
+              aria-expanded={cartOpen}
+              aria-controls="cart-dialog"
             >
               <ShoppingBag className="h-5 w-5" strokeWidth={1.5} />
               {count > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-crimson-600 px-1 text-[10px] font-bold text-cream-50">
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold-700 px-1 text-[10px] font-bold text-white dark:bg-crimson-600">
                   {count > 9 ? '۹+' : '۰۱۲۳۴۵۶۷۸۹'[count]}
                 </span>
               )}
@@ -117,12 +116,12 @@ export function Header({ page, onNavigate }: HeaderProps) {
 
             {/* Mobile menu toggle */}
             <button
-              onClick={() => {
-                const menu = document.getElementById('mobile-menu');
-                menu?.classList.toggle('translate-x-full');
-              }}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/25 text-gold-200 transition-colors hover:bg-gold-500/10 lg:hidden"
+              onClick={() => setMenuOpen(true)}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/25 text-accent transition-colors hover:bg-gold-500/10 xl:hidden"
               aria-label="منو"
+              aria-haspopup="dialog"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
             >
               <Menu className="h-5 w-5" strokeWidth={1.5} />
             </button>
@@ -131,40 +130,45 @@ export function Header({ page, onNavigate }: HeaderProps) {
       </header>
 
       {/* Mobile menu */}
-      <div
+      <StoreDialog
         id="mobile-menu"
-        className="fixed inset-0 z-[60] translate-x-full bg-ink-950/98 backdrop-blur-xl transition-transform duration-500 ease-luxe lg:hidden"
+        open={menuOpen} onClose={closeMenu} layer={60} initialFocus={menuTitle}
+        focusAfterClose={() => {
+          if (!menuNavigated.current) return null;
+          menuNavigated.current = false;
+          return document.querySelector<HTMLElement>('main h1[tabindex="-1"]');
+        }}
+        className="on-dark mobile-menu fixed inset-0 overflow-y-auto bg-ink-950/98 pb-8 outline-none"
       >
         <div className="flex h-20 items-center justify-between px-6">
-          <span className="font-display text-2xl text-cream-50">ورسا</span>
+          <StoreDialogTitle asChild><h2 ref={menuTitle} tabIndex={-1} className="font-display text-2xl text-cream-50">منوی ورسا</h2></StoreDialogTitle>
           <button
-            onClick={() => document.getElementById('mobile-menu')?.classList.add('translate-x-full')}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/25 text-gold-200"
+            onClick={closeMenu}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/25 text-accent"
             aria-label="بستن منو"
           >
             <X className="h-5 w-5" strokeWidth={1.5} />
           </button>
         </div>
-        <nav className="flex flex-col gap-2 px-6 pt-6">
+        <nav aria-label="ناوبری موبایل" className="flex flex-col gap-2 px-6 pt-6">
           {NAV.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => go(item.id)}
+            <Link key={item.id} href={pagePath(item.id)} onClick={navigateFromMenu} aria-current={page === item.id ? "page" : undefined}
               className={`flex items-center justify-between rounded-xl px-5 py-4 text-lg font-medium transition-colors ${
                 page === item.id
-                  ? 'bg-gold-500/10 text-gold-200'
+                  ? 'bg-gold-500/10 text-accent'
                   : 'text-cream-200/80 hover:bg-white/5 hover:text-cream-50'
               }`}
             >
               {item.label}
-            </button>
+            </Link>
           ))}
           <div className="mt-6 rounded-xl border border-gold-500/15 bg-white/[0.03] p-5 text-sm text-cream-300">
-            <p className="text-gold-200">{SITE.phone}</p>
-            <p className="mt-1 text-cream-400">{SITE.shipping}</p>
+            {CONTACT.phone ? <a href={CONTACT.phone.href} dir="ltr" className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">{toFaDigits(CONTACT.phone.label)}</a>
+              : <Link href={pagePath('contact')} onClick={navigateFromMenu} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">فرم تماس با ورسا</Link>}
+            <p className="mt-1 text-cream-400">{shipping}</p>
           </div>
         </nav>
-      </div>
+      </StoreDialog>
     </>
   );
 }

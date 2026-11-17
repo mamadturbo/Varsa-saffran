@@ -17,6 +17,21 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let csrfToken: string | null = null;
+let csrfPending: Promise<string> | null = null;
+async function browserCsrf(): Promise<string> {
+  if (csrfToken) return csrfToken;
+  if (!csrfPending) csrfPending = fetch('/api/csrf', { credentials: 'same-origin', cache: 'no-store' })
+    .catch(() => { throw new Error('ارتباط با سرور برقرار نیست. کمی بعد دوباره تلاش کنید.'); })
+    .then(async r => {
+      if (!r.ok) throw new Error('ارتباط با سرور برقرار نیست. کمی بعد دوباره تلاش کنید.');
+      const data = await r.json();
+      if (typeof data?.csrfToken !== 'string' || !data.csrfToken) throw new Error('پاسخ سرور معتبر نیست. دوباره تلاش کنید.');
+      return data.csrfToken as string;
+    })
+    .then(token => { csrfToken = token; return token; }).finally(() => { csrfPending = null; });
+  return csrfPending;
+}
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -360,7 +375,14 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  if (typeof window !== 'undefined' && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    const url = new URL(requestInfo.url, window.location.origin);
+    if (url.origin === window.location.origin && url.pathname.startsWith('/api/'))
+      headers.set('X-Varsa-CSRF', await browserCsrf());
+  }
+
+  const response = await fetch(input, { credentials: 'same-origin', ...init, method, headers });
+  if (response.status === 403) csrfToken = null;
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

@@ -1,0 +1,30 @@
+[Unit]
+Description=Varsa durable outbox and inventory worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=varsa
+WorkingDirectory=/opt/varsa/current/artifacts/api-server
+EnvironmentFile=/etc/varsa/api.env
+Environment=NODE_ENV=production
+Environment=PG_APPLICATION_NAME=varsa-worker
+ExecStart=/usr/bin/env NODE_ENV=production /usr/bin/node --enable-source-maps dist/worker.mjs
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+MemoryMax=384M
+TasksMax=64
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

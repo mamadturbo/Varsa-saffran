@@ -1,0 +1,20 @@
+{
+  "name": "ورسا | Varsa",
+  "processes": [
+    {
+      "id": "web",
+      "name": "فروشگاه ورسا",
+      "command": "node.exe ../../scripts/dev-local.mjs",
+      "cwd": "artifacts/varsa-shop",
+      "port": 5173,
+      "url": "http://127.0.0.1:5173/",
+      "color": "#c9a45c",
+      "autostart": false,
+      "env": {
+        "PATH": "C:\\Users\\Megabyte-system\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin;C:\\Users\\Megabyte-system\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files\\Git\\cmd;C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Users\\Megabyte-system\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\Megabyte-system\\AppData\\Local\\Programs\\Microsoft VS Code\\bin",
+        "PORT": "5173",
+        "BASE_PATH": "/"
+      }
+    }
+  ]
+}

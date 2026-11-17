@@ -9,6 +9,8 @@
   },
   "include": ["src"],
   "references": [
+    { "path": "../../lib/validation" },
+    { "path": "../../lib/catalog" },
     {
       "path": "../../lib/db"
     },

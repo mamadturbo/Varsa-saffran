@@ -1,0 +1,8 @@
+Saffron farms in Torbat Heydariyeh, Razavi Khorasan, Iran.
+Photographer: Safa Daneshvar. Date: 30 October 2007.
+License: CC BY-SA 3.0 Unported, https://creativecommons.org/licenses/by-sa/3.0/
+Sources:
+https://commons.wikimedia.org/wiki/File:860808-Saffronfarm-01-IMG_7707-2.jpg
+https://commons.wikimedia.org/wiki/File:860808-Saffronfarm-02-IMG_7674-2.jpg
+https://commons.wikimedia.org/wiki/File:860808-Saffronfarm-07-IMG_7888-2.jpg
+Adaptations: resized to responsive widths, converted to WebP; displayed with CSS cropping. Adaptations licensed under CC BY-SA 3.0.

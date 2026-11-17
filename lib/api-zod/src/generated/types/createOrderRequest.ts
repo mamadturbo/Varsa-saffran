@@ -5,17 +5,25 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { OrderItem } from './orderItem';
+import type { CreateOrderItem } from './createOrderItem';
 
 export interface CreateOrderRequest {
+  /** A UUID v4 identifying one logical checkout attempt; reuse it for retries. A committed key with different customer details or items returns 409. */
+  idempotencyKey: string;
+  /**
+     * Optional displayed-total assertion. Never used as the order price.
+     * @minimum 0
+     */
+  expectedTotal?: number;
   /**
      * @minLength 1
      * @maxLength 120
      */
   customerName: string;
   /**
+     * Iranian mobile number. Persian or Arabic digits, spaces, hyphens, +98 and 0098 are accepted; stored as 11 ASCII digits starting with 09.
      * @minLength 1
-     * @maxLength 32
+     * @maxLength 64
      */
   phone: string;
   /**
@@ -27,5 +35,5 @@ export interface CreateOrderRequest {
      * @minItems 1
      * @maxItems 50
      */
-  items: OrderItem[];
+  items: CreateOrderItem[];
 }

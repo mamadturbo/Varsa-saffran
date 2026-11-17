@@ -1,0 +1,8 @@
+title = "Varsa source scan"
+[extend]
+useDefault = true
+[allowlist]
+description = "Generated dependencies, local fixtures/backups and build outputs are not source artifacts"
+paths = ['''(^|[\\/])(node_modules|\.local|\.cache|\.conversation|dist|attached_assets)([\\/]|$)''', '''pnpm-lock\.yaml$''']
+regexTarget = "line"
+regexes = ['''const KEY = "varsa_guest_favorites_v1";''']

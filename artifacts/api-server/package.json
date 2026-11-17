@@ -4,29 +4,49 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
+    "test": "node --import tsx --test test/*.test.ts",
+    "dev": "pnpm run build && pnpm run start",
+    "dev:local": "pnpm run build && node --import tsx scripts/dev-local.ts",
     "build": "node ./build.mjs",
-    "start": "node --enable-source-maps ./dist/index.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "start": "node --env-file-if-exists=.env --enable-source-maps ./dist/index.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "worker": "node --env-file-if-exists=.env --enable-source-maps dist/worker.mjs",
+    "migrate:commerce": "node --import tsx scripts/migrate-commerce.ts",
+    "test:postgres": "node --import tsx --test test/postgres-commerce.test.ts",
+    "verify:deployment": "node --import tsx scripts/verify-deployment.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1156.0",
     "@workspace/api-zod": "workspace:*",
+    "@workspace/catalog": "workspace:*",
     "@workspace/db": "workspace:*",
+    "@workspace/validation": "workspace:*",
+    "argon2": "^0.45.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "drizzle-orm": "catalog:",
     "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "otpauth": "^9.5.2",
     "pino": "^9.14.0",
-    "pino-http": "^10.5.0"
+    "pino-http": "^10.5.0",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "catalog:",
-    "esbuild": "0.27.3",
+    "@types/pg": "^8.20.0",
+    "embedded-postgres": "18.4.0-beta.17",
+    "esbuild": "0.28.1",
     "esbuild-plugin-pino": "^2.3.3",
+    "pg": "^8.22.0",
     "pino-pretty": "^13.1.3",
-    "thread-stream": "3.1.0"
+    "s3rver": "^3.7.1",
+    "thread-stream": "3.1.0",
+    "tsx": "catalog:"
   }
 }
+

@@ -1,0 +1,54 @@
+{
+  "environment": "isolated local; no production services or data",
+  "postgres": "real PostgreSQL via embedded-postgres, UTF8",
+  "s3": "local S3rver over HTTP with AWS S3 SDK",
+  "migration": [
+    {
+      "phase": "commerce",
+      "alreadyMigrated": false,
+      "products": 12,
+      "coupons": 0,
+      "orders": 0,
+      "orderTotal": 0,
+      "currency": "IRT",
+      "legacyPreserved": true,
+      "reconciled": true,
+      "sourceSha256": "47ec2d2a47f7578dd56d274e94cd3f2e9f1cee9c735a722b5cfb3e5d604efc50",
+      "customers": 0,
+      "messages": 0
+    },
+    {
+      "phase": "articles",
+      "imported": 1,
+      "alreadyImported": false
+    },
+    {
+      "phase": "files",
+      "publicCount": 0,
+      "privateCount": 0,
+      "verified": true,
+      "legacyPreserved": true
+    }
+  ],
+  "builtApi": {
+    "health": 200,
+    "readiness": 200,
+    "products": 12,
+    "articles": 1,
+    "adminUnauthorized": 401,
+    "csrfEnforced": true,
+    "forgedForwardedHeadersCannotEvadeLimit": true,
+    "malformedJson": 400,
+    "oversizedJson": 413,
+    "unsupportedContentType": 415,
+    "compressedBodiesRejected": 415,
+    "sensitiveLogSentinelsAbsent": true,
+    "uploadsAuthenticateBeforeBodyParsing": true
+  },
+  "frontend": {
+    "strictMetadataBuild": true,
+    "pages": 22,
+    "warnings": []
+  },
+  "legacyUpstreamStopped": true
+}

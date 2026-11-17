@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-09",
+  "browser": "Google Chrome through Playwright, headless",
+  "result": "passed",
+  "storefrontFullChecks": 296,
+  "storefrontFinalRegressionChecks": 60,
+  "accountAdminChecks": 116,
+  "totalChecks": 472,
+  "runtimeErrors": [],
+  "normalMotion": "passed",
+  "menuFocusTrap": "passed",
+  "focusRestoration": "passed",
+  "desktopResizeMenuDismissal": "passed",
+  "scrollReveal": "passed",
+  "typecheck": "passed",
+  "productionBuild": "passed",
+  "limitations": [
+    "Browser emulation; no physical iOS/Android or Safari validation",
+    "Browser-only fixtures for account, admin and article content",
+    "No actual checkout submitted",
+    "Final regression also verified fallback fonts",
+    "Local build lacks production catalog/article metadata and VITE_SITE_URL"
+  ]
+}

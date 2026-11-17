@@ -1,0 +1,47 @@
+name: Security and regression
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  security:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install locked toolchain
+        shell: pwsh
+        run: npm install --global pnpm@11.25.0
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Dependency advisories with narrow reviewed exceptions
+        run: node scripts/security-audit.mjs
+      - name: Gitleaks checksum-verified source and history scan
+        shell: pwsh
+        run: |
+          $version = '8.30.1'
+          $asset = "gitleaks_${version}_windows_x64.zip"
+          $base = "https://github.com/gitleaks/gitleaks/releases/download/v$version"
+          $toolDir = Join-Path $env:RUNNER_TEMP 'varsa-gitleaks'
+          New-Item -ItemType Directory -Force $toolDir | Out-Null
+          Invoke-WebRequest "$base/$asset" -OutFile "$toolDir/tool.zip"
+          Invoke-WebRequest "$base/gitleaks_${version}_checksums.txt" -OutFile "$toolDir/checksums.txt"
+          $expected = (Get-Content "$toolDir/checksums.txt" | Where-Object { $_.EndsWith($asset) }).Split(' ')[0]
+          if ((Get-FileHash "$toolDir/tool.zip").Hash -ne $expected) { throw 'Gitleaks checksum mismatch' }
+          Expand-Archive "$toolDir/tool.zip" $toolDir
+          & "$toolDir/gitleaks.exe" git . --config .gitleaks.toml --redact=100 --report-format json --report-path gitleaks.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Typecheck
+        run: pnpm run typecheck
+      - name: Security, customer, checkout and real PostgreSQL tests
+        run: pnpm --filter @workspace/api-server test
+      - name: Build API and worker
+        run: pnpm --filter @workspace/api-server build
+      - name: Isolated migration and strict frontend build
+        run: pnpm --filter @workspace/api-server verify:deployment

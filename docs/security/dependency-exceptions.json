@@ -1,0 +1,26 @@
+{
+  "reviewBefore": "2026-11-27T00:00:00Z",
+  "exceptions": [
+    {
+      "id": "GHSA-wm7h-9275-46v2",
+      "module": "dicer",
+      "version": "0.3.0",
+      "paths": ["artifacts__api-server>s3rver>busboy>dicer"],
+      "reason": "S3rver is a dev-only emulator bound to 127.0.0.1 with disposable test data. No production import. Only trusted SDK fixture requests reach it; do not expose it to networks."
+    },
+    {
+      "id": "GHSA-x3cc-x39p-42qx",
+      "module": "fast-xml-parser",
+      "version": "3.21.1",
+      "paths": ["artifacts__api-server>s3rver>fast-xml-parser"],
+      "reason": "Same loopback-only S3rver fixture boundary. A major parser API substitution would break emulator compatibility and does not reduce public application exposure."
+    },
+    {
+      "id": "GHSA-gh4j-gqv2-49f6",
+      "module": "fast-xml-parser",
+      "version": "3.21.1",
+      "paths": ["artifacts__api-server>s3rver>fast-xml-parser"],
+      "reason": "XML builder is used only in the local test emulator. No external/untrusted XML inputs are accepted by the built storefront API."
+    }
+  ]
+}

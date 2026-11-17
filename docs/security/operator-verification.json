@@ -1,0 +1,8 @@
+{
+  "environment": "fresh loopback PostgreSQL only",
+  "builtCli": true,
+  "accountCreated": true,
+  "recoveryRevokedSessions": true,
+  "recoveryResetFactorsAndPassword": true,
+  "publicCreationEndpoint": false
+}

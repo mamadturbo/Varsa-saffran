@@ -10,6 +10,7 @@ export * from './adminLoginRequest';
 export * from './adminLoginResponse';
 export * from './adminOrderResponse';
 export * from './adminOrdersResponse';
+export * from './createOrderItem';
 export * from './createOrderRequest';
 export * from './createOrderResponse';
 export * from './errorResponse';

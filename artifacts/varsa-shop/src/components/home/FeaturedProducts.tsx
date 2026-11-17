@@ -1,49 +1,46 @@
-import { useState } from 'react';
+import { pagePath } from '@/lib/routes';
+import { Link } from 'wouter';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import type { Product } from '@/lib/types';
 import { fetchFeaturedProducts } from '@/lib/api';
 import { SectionHeading } from '@/components/SectionHeading';
 import { ProductCard } from '@/components/ProductCard';
 import { useAsyncData } from '@/lib/hooks-extra';
 
-interface FeaturedProps {
-  onNavigate: (page: string) => void;
-  onOpenProduct: (product: Product) => void;
-}
 
-export function FeaturedProducts({ onNavigate, onOpenProduct }: FeaturedProps) {
+export function FeaturedProducts() {
   const { data: products, loading, error } = useAsyncData(fetchFeaturedProducts, []);
 
   return (
     <section className="relative py-24">
       <div className="container-luxe">
         <SectionHeading
-          eyebrow="منتخبِ ورسا"
-          title={<>محصولات <span className="gold-text">ناب</span> ما</>}
-          subtitle="از نگین بی‌نقص تا پک‌های هدیه‌ی مجلل؛ هر بسته، عطر کویر را در خود دارد."
+          title={<>منتخبی از <span className="gold-text">محصولات ورسا</span></>}
+          subtitle="مشخصات، وزن و قیمت چند محصول از کاتالوگ فعلی ورسا را ببینید."
         />
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-gold-400" strokeWidth={1.5} />
+            <Loader2 className="h-8 w-8 animate-spin text-accent" strokeWidth={1.5} />
           </div>
         ) : error ? (
           <p className="py-20 text-center text-cream-400">بارگذاری محصولات با خطا روبه‌رو شد.</p>
+        ) : !products?.length ? (
+          <p className="py-20 text-center text-cream-400">هنوز محصولی برای نمایش در این بخش انتخاب نشده است.</p>
         ) : (
-          <div className="mt-14 grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-5 sm:mt-14 sm:grid-cols-2 sm:gap-7 xl:grid-cols-4">
             {(products ?? []).map((p, i) => (
               <div key={p.id} className={`reveal reveal-delay-${(i % 4) + 1}`}>
-                <ProductCard product={p} onOpen={onOpenProduct} />
+                <ProductCard product={p} imageSizes="(min-width: 1280px) 276px, (min-width: 1024px) calc((100vw - 124px) / 2), (min-width: 640px) calc((100vw - 92px) / 2), calc(100vw - 32px)" />
               </div>
             ))}
           </div>
         )}
 
         <div className="mt-14 text-center">
-          <button onClick={() => onNavigate('shop')} className="btn-gold">
+          <Link href={pagePath('shop')} className="btn-gold">
             مشاهده‌ی همه‌ی محصولات
             <ArrowLeft className="h-4 w-4" strokeWidth={2} />
-          </button>
+          </Link>
         </div>
       </div>
     </section>

@@ -1,38 +1,40 @@
-import { Leaf, Hand, ShieldCheck, Truck } from 'lucide-react';
+import { Layers, Scale, Package, Truck } from 'lucide-react';
 import { ArabesqueDivider } from '@/components/Brand';
+
+
 
 const FEATURES = [
   {
-    icon: Leaf,
-    title: 'کشت ارگانیک و بدون سم',
-    text: 'زعفران ورسا بدون هیچ‌گونه کود شیمیایی یا سم کشت می‌شود؛ با گواهی آنالیز آزمایشگاهی.',
+    icon: Layers,
+    title: 'انتخاب دسته‌بندی',
+    text: 'محصولات هر دسته را جدا ببینید و توضیحات هر بسته را بررسی کنید.',
   },
   {
-    icon: Hand,
-    title: 'بدون دخالت دست',
-    text: 'از چیدن گل تا بسته‌بندی، هیچ‌کدام از مراحل با دست انجام نمی‌شود؛ ضدعفونی مکانیکی و استاندارد.',
+    icon: Scale,
+    title: 'مقایسه وزن و قیمت',
+    text: 'وزن خالص و قیمت هر بسته در فروشگاه را بررسی کنید و بر اساس نیاز خود بستهٔ مورد نظر را انتخاب کنید.',
   },
   {
-    icon: ShieldCheck,
-    title: 'بسته‌بندی فلزی اختصاصی',
-    text: 'بسته‌بندی فلزی با درب دوگانه، عطر و رطوبت را تا لحظه‌ی مصرف کامل نگه می‌دارد.',
+    icon: Package,
+    title: 'جزئیات هر محصول',
+    text: 'جزئیات هر محصول را به‌طور کامل و دقیق ببینید.',
   },
   {
     icon: Truck,
-    title: 'ارسال امن و سریع',
-    text: 'همکاری با تیپاکس، بسته‌بندی ضربه‌گیر و ضدآسیب؛ تحویل ۲ تا ۵ روز کاری.',
+    title: 'ارسال سریع',
+    text: 'زمان ارسال خود را انتخاب کنید و از ارسال سریع کالا لذت ببرید.',
   },
 ];
 
 export function Features() {
+
   return (
     <section className="relative border-y border-gold-500/10 bg-ink-800/60 py-20">
       <div className="absolute inset-0 bg-grid-gold opacity-20" />
       <div className="container-luxe relative z-10">
         <div className="mb-14 text-center">
-          <span className="chip mb-4">چرا ورسا؟</span>
           <h2 className="font-display text-3xl font-bold text-cream-50 sm:text-4xl">
-            اصالت، از <span className="gold-text">مزرعه تا سفره</span>
+            انتخاب با <span className="gold-text">اطلاعات روشن</span>
           </h2>
           <ArabesqueDivider className="mt-5" />
         </div>
@@ -44,7 +46,7 @@ export function Features() {
               className={`reveal reveal-delay-${i + 1} card-luxe group p-7 text-center`}
             >
               <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-gold-500/30 bg-gold-500/5 transition-all duration-700 ease-luxe group-hover:border-gold-400 group-hover:shadow-gold">
-                <f.icon className="h-7 w-7 text-gold-300" strokeWidth={1.3} />
+                <f.icon className="h-7 w-7 text-accent" strokeWidth={1.3} />
               </div>
               <h3 className="mb-3 text-base font-semibold text-cream-50">{f.title}</h3>
               <p className="text-sm leading-7 text-cream-300">{f.text}</p>

@@ -1,10 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { setAuthTokenGetter } from '@workspace/api-client-react';
 import App from './App.tsx';
 import './index.css';
 
-setAuthTokenGetter(() => sessionStorage.getItem('varsa_admin_token_v1'));
+// Retire credentials left by older releases. Session identifiers are HttpOnly.
+try { sessionStorage.removeItem('varsa_admin_token_v1'); } catch { /* storage disabled */ }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

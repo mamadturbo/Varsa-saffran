@@ -52,6 +52,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Catalog prices changed; review the cart before retrying
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Catalog temporarily unavailable; no order saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/login:
     post:
       operationId: adminLogin
@@ -76,13 +88,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Login attempt limit exceeded (8 per account, 80 per client network, 1000 overall in 15 minutes). Successful and malformed attempts also count.
+          headers:
+            Retry-After:
+              description: Seconds until the limiting window expires
+              schema:
+                type: integer
+                minimum: 1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Authentication configuration or limiter storage unavailable; no session issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/orders:
     get:
       operationId: listAdminOrders
       tags: [admin]
       summary: List recent orders for the admin panel
       security:
-        - bearerAuth: []
+        - adminCookie: []
       parameters:
         - name: status
           in: query
@@ -108,7 +138,7 @@ paths:
       tags: [admin]
       summary: Update an order status
       security:
-        - bearerAuth: []
+        - adminCookie: []
       parameters:
         - name: id
           in: path
@@ -148,9 +178,10 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
+    adminCookie:
+      type: apiKey
+      in: cookie
+      name: varsa_admin_session
   schemas:
     HealthStatus:
       type: object
@@ -181,6 +212,14 @@ components:
     CreateOrderRequest:
       type: object
       properties:
+        idempotencyKey:
+          type: string
+          format: uuid
+          description: A UUID v4 identifying one logical checkout attempt; reuse it for retries. A committed key with different customer details or items returns 409.
+        expectedTotal:
+          type: integer
+          minimum: 0
+          description: Optional displayed-total assertion. Never used as the order price.
         customerName:
           type: string
           minLength: 1
@@ -188,7 +227,9 @@ components:
         phone:
           type: string
           minLength: 1
-          maxLength: 32
+          maxLength: 64
+          description: Iranian mobile number. Persian or Arabic digits, spaces, hyphens, +98 and 0098 are accepted; stored as 11 ASCII digits starting with 09.
+          examples: ['09123456789', '۰۹۱۲۳۴۵۶۷۸۹', '+989123456789']
         address:
           type: string
           minLength: 1
@@ -198,8 +239,21 @@ components:
           minItems: 1
           maxItems: 50
           items:
-            $ref: "#/components/schemas/OrderItem"
-      required: [customerName, phone, address, items]
+            $ref: "#/components/schemas/CreateOrderItem"
+      required: [idempotencyKey, customerName, phone, address, items]
+    CreateOrderItem:
+      type: object
+      description: Product identity and quantity only. Maximum 99 units per product across duplicate lines and legacy aliases. The server determines price and product details; extra client fields are ignored.
+      properties:
+        productId:
+          type: string
+          minLength: 1
+          maxLength: 100
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 99
+      required: [productId, quantity]
     CreateOrderResponse:
       type: object
       properties:
@@ -256,16 +310,28 @@ components:
     AdminLoginRequest:
       type: object
       properties:
+        username:
+          type: string
+          maxLength: 64
         password:
           type: string
           minLength: 1
-      required: [password]
+          maxLength: 256
+        code:
+          type: string
+          pattern: '^\d{6}$'
+        recoveryCode:
+          type: string
+          maxLength: 32
+      required: [username, password]
     AdminLoginResponse:
       type: object
       properties:
-        token:
-          type: string
-      required: [token]
+        authenticated:
+          type: boolean
+        enrollmentRequired:
+          type: boolean
+      required: [authenticated, enrollmentRequired]
     AdminOrdersResponse:
       type: object
       properties:
@@ -292,4 +358,5 @@ components:
         message:
           type: string
       required: [message]
+
 

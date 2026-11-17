@@ -2,30 +2,23 @@ import path from 'path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
+import { pageMetadataPlugin } from './seo-plugin';
+import { storefrontHeaders } from './security-policy';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
-const rawPort = process.env.PORT;
-
-if (!rawPort) {
-  throw new Error(
-    'PORT environment variable is required but was not provided.',
-  );
-}
+const rawPort = process.env.PORT ?? '5173';
 
 const port = Number(rawPort);
 
-if (Number.isNaN(port) || port <= 0) {
+if (!Number.isInteger(port) || port <= 0 || port > 65535) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-const basePath = process.env.BASE_PATH;
-
-if (!basePath) {
-  throw new Error(
-    'BASE_PATH environment variable is required but was not provided.',
-  );
-}
+const basePath = process.env.BASE_PATH ?? '/';
+const apiProxy = {
+  '/api': { target: process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:5000' },
+};
 
 export default defineConfig({
   base: basePath,
@@ -33,6 +26,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
+    pageMetadataPlugin(),
     ...(process.env.NODE_ENV !== 'production' &&
     process.env.REPL_ID !== undefined
       ? [
@@ -66,16 +60,19 @@ export default defineConfig({
   },
   server: {
     port,
+    proxy: apiProxy,
     strictPort: true,
-    host: '0.0.0.0',
-    allowedHosts: true,
+    host: '127.0.0.1',
+    allowedHosts: ['localhost', '127.0.0.1'],
     fs: {
       strict: true,
     },
   },
   preview: {
+    headers: storefrontHeaders,
     port,
-    host: '0.0.0.0',
-    allowedHosts: true,
+    proxy: apiProxy,
+    host: '127.0.0.1',
+    allowedHosts: ['localhost', '127.0.0.1'],
   },
 });

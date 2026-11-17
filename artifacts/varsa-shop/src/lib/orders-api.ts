@@ -1,5 +1,5 @@
 import {
-  adminLogin,
+  customFetch,
   createOrder,
   listAdminOrders,
   updateAdminOrderStatus,
@@ -7,23 +7,14 @@ import {
   type Order,
   type OrderStatus,
 } from '@workspace/api-client-react';
+import { parseOrderReceipt } from './order-receipt';
 
-export const ADMIN_TOKEN_KEY = 'varsa_admin_token_v1';
-
-export function getAdminToken(): string | null {
-  try {
-    return sessionStorage.getItem(ADMIN_TOKEN_KEY);
-  } catch {
-    return null;
-  }
+export function readAdminSession() {
+  return customFetch<{authenticated:boolean;enrollmentRequired:boolean}>('/api/admin/session');
 }
 
-export function saveAdminToken(token: string) {
-  sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
-}
-
-export function clearAdminToken() {
-  sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+export async function signOutAdmin() {
+  await customFetch('/api/admin/logout', { method: 'POST' });
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string): string {
@@ -34,13 +25,23 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export function submitOrder(input: CreateOrderRequest) {
-  return createOrder(input);
+export async function submitOrder(input: CreateOrderRequest & { couponCode?: string }) {
+  const result = await createOrder(input, { signal: AbortSignal.timeout(20_000) });
+  return parseOrderReceipt(result);
 }
 
-export async function signInAdmin(password: string): Promise<string> {
-  const result = await adminLogin({ password });
-  return result.token;
+export async function signInAdmin(password: string, username: string, code: string, recoveryCode: string) {
+  return customFetch<{authenticated:boolean;enrollmentRequired:boolean}>('/api/admin/login', {
+    method:'POST', body:JSON.stringify({password,username,code,recoveryCode}), signal:AbortSignal.timeout(20000)
+  });
+}
+
+export function getAdminLoginRetryAfter(error: unknown): number | null {
+  if (!error || typeof error !== 'object') return null;
+  const response = error as { status?: unknown; headers?: Headers };
+  if (response.status !== 429) return null;
+  const seconds = Number(response.headers?.get('Retry-After'));
+  return Number.isFinite(seconds) && seconds > 0 ? Math.min(900, Math.ceil(seconds)) : 900;
 }
 
 export async function fetchAdminOrders(status?: OrderStatus): Promise<Order[]> {

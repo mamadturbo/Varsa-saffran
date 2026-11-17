@@ -7,6 +7,15 @@
  */
 
 export interface AdminLoginRequest {
-  /** @minLength 1 */
+  /** @maxLength 64 */
+  username: string;
+  /**
+     * @minLength 1
+     * @maxLength 256
+     */
   password: string;
+  /** @pattern ^\d{6}$ */
+  code?: string;
+  /** @maxLength 32 */
+  recoveryCode?: string;
 }

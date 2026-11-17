@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-27T17:22:06.289Z",
+  "scope": "Disposable loopback environment only; no third party or public active scans",
+  "api": "http://127.0.0.1:5017",
+  "front": "http://127.0.0.1:5187",
+  "checks": 15,
+  "results": [
+    {
+      "name": "Admin unauthorized",
+      "status": 401
+    },
+    {
+      "name": "Forged bearer and forwarding headers",
+      "status": 401
+    },
+    {
+      "name": "Private file unauthenticated",
+      "status": 404
+    },
+    {
+      "name": "Public file path cannot disclose missing private object",
+      "status": 404
+    },
+    {
+      "name": "Missing CSRF /api/orders",
+      "status": 403
+    },
+    {
+      "name": "Missing CSRF /api/admin/login",
+      "status": 403
+    },
+    {
+      "name": "Missing CSRF /api/customer/auth/request",
+      "status": 403
+    },
+    {
+      "name": "Missing CSRF /api/contact",
+      "status": 403
+    },
+    {
+      "name": "Foreign origin with a valid independent CSRF pair",
+      "status": 403
+    },
+    {
+      "name": "CORS rejects attacker origin",
+      "status": 204
+    },
+    {
+      "name": "Catalog query does not reflect script probe",
+      "status": 200
+    },
+    {
+      "name": "Frontend headers /",
+      "status": 200
+    },
+    {
+      "name": "Frontend headers /admin",
+      "status": 200
+    },
+    {
+      "name": "Frontend headers /contact",
+      "status": 200
+    },
+    {
+      "name": "Frontend headers /products/super-negin-1g",
+      "status": 200
+    }
+  ],
+  "zap": "Not available: no installed ZAP, Java or Docker. These bounded HTTP probes complement regression tests; no ZAP coverage claimed."
+}

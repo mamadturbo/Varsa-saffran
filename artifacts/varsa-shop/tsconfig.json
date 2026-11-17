@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "seo-plugin.ts"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "noEmit": true,
@@ -15,6 +15,8 @@
     }
   },
   "references": [
+    { "path": "../../lib/validation" },
+    { "path": "../../lib/catalog" },
     {
       "path": "../../lib/api-client-react"
     }

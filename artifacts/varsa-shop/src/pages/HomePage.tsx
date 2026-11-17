@@ -1,31 +1,27 @@
-import type { Product } from '@/lib/types';
 import { useReveal } from '@/lib/hooks';
 import { Hero } from '@/components/home/Hero';
+import { GuideTeaser } from '@/components/home/GuideTeaser';
 import { Features } from '@/components/home/Features';
 import { FeaturedProducts } from '@/components/home/FeaturedProducts';
-import { QualityShowcase } from '@/components/home/QualityShowcase';
+import { SelectionShowcase } from '@/components/home/SelectionShowcase';
 import { StoryPreview } from '@/components/home/StoryPreview';
 import { JournalPreview } from '@/components/home/JournalPreview';
 import { CtaBanner } from '@/components/home/CtaBanner';
 
-interface HomePageProps {
-  onNavigate: (page: string) => void;
-  onOpenProduct: (product: Product) => void;
-  onOpenArticle: (slug: string) => void;
-}
 
-export function HomePage({ onNavigate, onOpenProduct, onOpenArticle }: HomePageProps) {
+export function HomePage() {
   const ref = useReveal<HTMLElement>();
 
   return (
-    <main ref={ref}>
-      <Hero onNavigate={onNavigate} />
+    <main ref={ref} className="home-page">
+      <Hero />
+      <GuideTeaser />
       <Features />
-      <FeaturedProducts onNavigate={onNavigate} onOpenProduct={onOpenProduct} />
-      <QualityShowcase />
-      <StoryPreview onNavigate={onNavigate} />
-      <JournalPreview onNavigate={onNavigate} onOpenArticle={onOpenArticle} />
-      <CtaBanner onNavigate={onNavigate} />
+      <FeaturedProducts />
+      <SelectionShowcase />
+      <StoryPreview />
+      <JournalPreview />
+      <CtaBanner />
     </main>
   );
 }

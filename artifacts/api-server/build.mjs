@@ -15,7 +15,12 @@ async function buildAll() {
   await rm(distDir, { recursive: true, force: true });
 
   await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+    entryPoints: {
+      index:path.resolve(artifactDir,'src/index.ts'),
+      worker:path.resolve(artifactDir,'src/worker.ts'),
+      'admin-account':path.resolve(artifactDir,'scripts/admin-account.ts'),
+      'migrate-commerce':path.resolve(artifactDir,'scripts/migrate-commerce.ts'),
+    },
     platform: "node",
     bundle: true,
     format: "esm",

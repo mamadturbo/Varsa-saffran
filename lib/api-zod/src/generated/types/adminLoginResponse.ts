@@ -7,5 +7,6 @@
  */
 
 export interface AdminLoginResponse {
-  token: string;
+  authenticated: boolean;
+  enrollmentRequired: boolean;
 }

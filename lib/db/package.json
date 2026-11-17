@@ -8,6 +8,10 @@
     "./schema": "./src/schema/index.ts"
   },
   "scripts": {
+    "migrate:customers": "node --env-file-if-exists=../../artifacts/varsa-shop/.env --env-file-if-exists=../../artifacts/api-server/.env scripts/migrate-customers.mjs",
+    "migrate:management": "node --env-file-if-exists=../../artifacts/varsa-shop/.env --env-file-if-exists=../../artifacts/api-server/.env scripts/migrate-management.mjs",
+    "migrate:admin-login": "node --env-file-if-exists=../../artifacts/api-server/.env scripts/migrate-admin-login.mjs",
+    "migrate:orders": "node --env-file-if-exists=../../artifacts/api-server/.env scripts/migrate-order-idempotency.mjs",
     "push": "drizzle-kit push --config ./drizzle.config.ts",
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts"
   },
@@ -18,6 +22,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
     "@types/node": "catalog:",
     "@types/pg": "^8.20.0",
     "drizzle-kit": "^0.31.10"

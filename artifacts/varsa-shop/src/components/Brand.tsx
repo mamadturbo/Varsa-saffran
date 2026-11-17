@@ -1,46 +1,32 @@
-import type { SVGProps } from 'react';
+import type { CSSProperties, HTMLAttributes } from 'react';
 
-/**
- * Varsa wordmark — a saffron bloom with three stylized stigmas inside a
- * Persian "shamseh" sunburst. Used in the header, footer, and favicon.
- */
-export function VarsaMark({ className, ...props }: SVGProps<SVGSVGElement>) {
+type BrandProps = HTMLAttributes<HTMLSpanElement> & {
+  tone?: 'auto' | 'gold' | 'rust';
+};
+
+function BrandImage({ kind, tone = 'auto', className = '', style, ...props }: BrandProps & { kind: 'logo' | 'monogram' }) {
+  const artworkStyle = {
+    '--varsa-gold-artwork': `url("${import.meta.env.BASE_URL}brand/${kind}-gold.png")`,
+    ...style,
+  } as CSSProperties;
   return (
-    <svg
-      viewBox="0 0 64 64"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      {...props}
-    >
-      <defs>
-        <linearGradient id="varsaGold" x1="0" y1="0" x2="64" y2="64">
-          <stop stopColor="#f0d9a8" />
-          <stop offset="0.5" stopColor="#C9A96E" />
-          <stop offset="1" stopColor="#92733f" />
-        </linearGradient>
-      </defs>
-      {/* shamseh sunburst */}
-      <g stroke="url(#varsaGold)" strokeWidth="1.4" opacity="0.85">
-        {Array.from({ length: 16 }).map((_, i) => {
-          const a = (i * Math.PI) / 8;
-          const x1 = 32 + Math.cos(a) * 20;
-          const y1 = 32 + Math.sin(a) * 20;
-          const x2 = 32 + Math.cos(a) * 28;
-          const y2 = 32 + Math.sin(a) * 28;
-          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} />;
-        })}
-      </g>
-      <circle cx="32" cy="32" r="20" stroke="url(#varsaGold)" strokeWidth="1.2" opacity="0.5" />
-      {/* three saffron stigmas */}
-      <g stroke="url(#varsaGold)" strokeWidth="2.6" strokeLinecap="round">
-        <path d="M32 44 C 30 36, 27 30, 25 22" />
-        <path d="M32 44 C 32 36, 32 28, 32 20" />
-        <path d="M32 44 C 34 36, 37 30, 39 22" />
-      </g>
-      <circle cx="32" cy="46" r="2.4" fill="url(#varsaGold)" />
-    </svg>
+    <span role="img" aria-label="ورسا" className={`varsa-brand-image varsa-brand-${kind} varsa-brand-${tone} ${className}`} style={artworkStyle} {...props}>
+      {(['rust', 'gold'] as const).map((color) => (
+        <img key={color} src={`${import.meta.env.BASE_URL}brand/${kind}-${color}.png`}
+          className={`varsa-brand-tone-${color}`} alt="" aria-hidden="true"
+          width={kind === 'logo' ? 720 : 384} height={kind === 'logo' ? (color === 'gold' ? 468 : 458) : 384}
+          draggable={false} decoding="async" />
+      ))}
+    </span>
   );
+}
+
+export function VarsaMark(props: BrandProps) {
+  return <BrandImage kind="monogram" {...props} />;
+}
+
+export function VarsaLogo(props: BrandProps) {
+  return <BrandImage kind="logo" {...props} />;
 }
 
 /** Horizontal Persian-style ornamental divider — two mirrored arabesques. */

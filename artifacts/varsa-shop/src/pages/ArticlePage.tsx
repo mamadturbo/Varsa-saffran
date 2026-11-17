@@ -1,16 +1,18 @@
+import { DeliveryImage } from '@/components/DeliveryImage';
+import { Link } from 'wouter';
 import { useEffect } from 'react';
 import { ArrowRight, Clock, Loader2 } from 'lucide-react';
 import { fetchArticleBySlug } from '@/lib/api';
 import { toFaDigits } from '@/lib/site';
 import { useAsyncData } from '@/lib/hooks-extra';
 import { ArabesqueDivider } from '@/components/Brand';
+import { articleBlocks } from '@/lib/article-blocks';
 
 interface ArticlePageProps {
   slug: string;
-  onBack: () => void;
 }
 
-export function ArticlePage({ slug, onBack }: ArticlePageProps) {
+export function ArticlePage({ slug }: ArticlePageProps) {
   const { data: article, loading, error } = useAsyncData(
     () => fetchArticleBySlug(slug),
     [slug]
@@ -23,7 +25,7 @@ export function ArticlePage({ slug, onBack }: ArticlePageProps) {
   if (loading) {
     return (
       <main className="flex min-h-[70vh] items-center justify-center pt-32">
-        <Loader2 className="h-8 w-8 animate-spin text-gold-400" strokeWidth={1.5} />
+        <Loader2 className="h-8 w-8 animate-spin text-accent" strokeWidth={1.5} />
       </main>
     );
   }
@@ -32,35 +34,38 @@ export function ArticlePage({ slug, onBack }: ArticlePageProps) {
     return (
       <main className="pt-32">
         <div className="container-luxe py-20 text-center">
-          <p className="text-cream-300">مقاله یافت نشد.</p>
-          <button onClick={onBack} className="btn-gold mt-6">
+          <h1 className="text-xl font-bold text-cream-300">{error ? 'دریافت مقاله انجام نشد' : 'مقاله یافت نشد'}</h1>
+          <Link href="/journal" className="btn-gold mt-6">
             بازگشت به مجله
-          </button>
+          </Link>
         </div>
       </main>
     );
   }
 
-  const paragraphs = article.content.split('\n').filter(Boolean);
+  const blocks = articleBlocks(article.content);
 
   return (
     <main className="pt-32">
       <article>
         {/* Hero */}
-        <div className="relative h-[52vh] min-h-[380px] overflow-hidden">
-          <img
+        <div className="on-dark relative flex min-h-[380px] items-end overflow-hidden sm:min-h-[440px]">
+          <DeliveryImage
             src={article.image_url}
             alt={article.title}
-            className="h-full w-full object-cover animate-slow-zoom"
+            decoding="async"
+            loading="eager"
+            fetchPriority="high"
+            className="absolute inset-0 h-full w-full object-cover animate-slow-zoom"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/50 to-ink-950/30" />
-          <div className="absolute inset-x-0 bottom-0">
+          <div className="absolute inset-0 img-overlay-article" />
+          <div className="relative w-full pt-16">
             <div className="container-luxe pb-10">
               <span className="chip backdrop-blur-sm">{article.category}</span>
               <h1 className="mt-4 max-w-3xl font-display text-3xl font-bold leading-tight text-cream-50 text-balance sm:text-4xl lg:text-5xl">
                 {article.title}
               </h1>
-              <div className="mt-4 flex items-center gap-4 text-sm text-cream-300">
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-cream-300">
                 <span>{article.author}</span>
                 <span className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -74,31 +79,31 @@ export function ArticlePage({ slug, onBack }: ArticlePageProps) {
         {/* Body */}
         <div className="container-luxe py-16">
           <div className="mx-auto max-w-3xl">
-            <button
-              onClick={onBack}
-              className="mb-8 flex items-center gap-2 text-sm text-gold-200 transition-colors hover:text-gold-100"
+            <Link href="/journal"
+              className="mb-8 flex min-h-11 items-center gap-2 text-sm text-accent transition-colors hover:text-accent"
             >
               <ArrowRight className="h-4 w-4" strokeWidth={2} />
               بازگشت به مجله دلگشا
-            </button>
+            </Link>
 
             <ArabesqueDivider className="mb-10" />
 
             <div className="space-y-6">
-              {paragraphs.map((para, i) => {
-                if (para.startsWith('## ')) {
+              {blocks.map((block, i) => {
+                if (block.type === 'heading') {
+                  const Heading = `h${block.level}` as const;
                   return (
-                    <h2
+                    <Heading
                       key={i}
-                      className="pt-4 font-display text-2xl font-bold text-gold-200"
+                      className="pt-4 font-display text-2xl font-bold text-accent"
                     >
-                      {para.replace(/^##\s+/, '')}
-                    </h2>
+                      {block.text}
+                    </Heading>
                   );
                 }
                 return (
                   <p key={i} className="text-base leading-9 text-cream-200 text-pretty">
-                    {para}
+                    {block.text}
                   </p>
                 );
               })}
@@ -107,7 +112,7 @@ export function ArticlePage({ slug, onBack }: ArticlePageProps) {
             <ArabesqueDivider className="my-12" />
 
             <div className="rounded-2xl border border-gold-500/20 bg-gradient-to-b from-gold-500/[0.06] to-transparent p-6 text-center">
-              <p className="font-display text-lg text-gold-200">عطر کویر را چشیده‌اید؟</p>
+              <p className="font-display text-lg text-accent">عطر کویر را چشیده‌اید؟</p>
               <p className="mt-2 text-sm text-cream-300">
                 زعفران ورسا را از فروشگاه ما سفارش دهید و تفاوت را احساس کنید.
               </p>

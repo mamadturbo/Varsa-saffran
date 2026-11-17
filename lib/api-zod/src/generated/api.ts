@@ -20,30 +20,32 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary Create a customer order
  */
+export const createOrderBodyExpectedTotalMin = 0;
+
 export const createOrderBodyCustomerNameMax = 120;
 
-export const createOrderBodyPhoneMax = 32;
+export const createOrderBodyPhoneMax = 64;
 
 export const createOrderBodyAddressMax = 1000;
 
+export const createOrderBodyItemsItemProductIdMax = 100;
 
-export const createOrderBodyItemsItemUnitPriceMin = 0;
+export const createOrderBodyItemsItemQuantityMax = 99;
 
 export const createOrderBodyItemsMax = 50;
 
 
 
 export const CreateOrderBody = zod.object({
+  "idempotencyKey": zod.string().uuid().describe('A UUID v4 identifying one logical checkout attempt; reuse it for retries. A committed key with different customer details or items returns 409.'),
+  "expectedTotal": zod.number().int().min(createOrderBodyExpectedTotalMin).optional().describe('Optional displayed-total assertion. Never used as the order price.'),
   "customerName": zod.string().min(1).max(createOrderBodyCustomerNameMax),
-  "phone": zod.string().min(1).max(createOrderBodyPhoneMax),
+  "phone": zod.string().min(1).max(createOrderBodyPhoneMax).describe('Iranian mobile number. Persian or Arabic digits, spaces, hyphens, +98 and 0098 are accepted; stored as 11 ASCII digits starting with 09.'),
   "address": zod.string().min(1).max(createOrderBodyAddressMax),
   "items": zod.array(zod.object({
-  "productId": zod.string(),
-  "name": zod.string(),
-  "quantity": zod.number().min(1),
-  "unitPrice": zod.number().min(createOrderBodyItemsItemUnitPriceMin),
-  "imageUrl": zod.string().optional()
-})).min(1).max(createOrderBodyItemsMax)
+  "productId": zod.string().min(1).max(createOrderBodyItemsItemProductIdMax),
+  "quantity": zod.number().int().min(1).max(createOrderBodyItemsItemQuantityMax)
+}).describe('Product identity and quantity only. Maximum 99 units per product across duplicate lines and legacy aliases. The server determines price and product details; extra client fields are ignored.')).min(1).max(createOrderBodyItemsMax)
 })
 
 export const CreateOrderResponse = zod.object({
@@ -58,15 +60,25 @@ export const CreateOrderResponse = zod.object({
 /**
  * @summary Sign in to the order monitoring panel
  */
+export const adminLoginBodyUsernameMax = 64;
+
+export const adminLoginBodyPasswordMax = 256;
+
+export const adminLoginBodyCodeRegExp = new RegExp('^\\d{6}$');
+export const adminLoginBodyRecoveryCodeMax = 32;
 
 
 
 export const AdminLoginBody = zod.object({
-  "password": zod.string().min(1)
+  "username": zod.string().max(adminLoginBodyUsernameMax),
+  "password": zod.string().min(1).max(adminLoginBodyPasswordMax),
+  "code": zod.string().regex(adminLoginBodyCodeRegExp).optional(),
+  "recoveryCode": zod.string().max(adminLoginBodyRecoveryCodeMax).optional()
 })
 
 export const AdminLoginResponse = zod.object({
-  "token": zod.string()
+  "authenticated": zod.boolean(),
+  "enrollmentRequired": zod.boolean()
 })
 
 

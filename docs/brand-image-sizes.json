@@ -1,0 +1,446 @@
+[
+  {
+    "source": "negin-1-mesghal.png",
+    "bytes": 1919260,
+    "sha256": "a40927ec78aa44024cb03a5a48525eef0e580aa76b01665f434b69a551dd5c70",
+    "variants": [
+      {
+        "width": 160,
+        "height": 160,
+        "file": "negin-1-mesghal-160.webp",
+        "bytes": 8594
+      },
+      {
+        "width": 320,
+        "height": 320,
+        "file": "negin-1-mesghal-320.webp",
+        "bytes": 24392
+      },
+      {
+        "width": 640,
+        "height": 640,
+        "file": "negin-1-mesghal-640.webp",
+        "bytes": 66040
+      },
+      {
+        "width": 960,
+        "height": 960,
+        "file": "negin-1-mesghal-960.webp",
+        "bytes": 119340
+      },
+      {
+        "width": 1254,
+        "height": 1254,
+        "file": "negin-1-mesghal-1254.webp",
+        "bytes": 166266
+      }
+    ]
+  },
+  {
+    "source": "negin-1g.png",
+    "bytes": 1887206,
+    "sha256": "9127cd64c8040a4af2e712154cae648235c3190422538831f3eb37b7b9ec06f5",
+    "variants": [
+      {
+        "width": 160,
+        "height": 160,
+        "file": "negin-1g-160.webp",
+        "bytes": 8200
+      },
+      {
+        "width": 320,
+        "height": 320,
+        "file": "negin-1g-320.webp",
+        "bytes": 23586
+      },
+      {
+        "width": 640,
+        "height": 640,
+        "file": "negin-1g-640.webp",
+        "bytes": 64046
+      },
+      {
+        "width": 960,
+        "height": 960,
+        "file": "negin-1g-960.webp",
+        "bytes": 115856
+      },
+      {
+        "width": 1254,
+        "height": 1254,
+        "file": "negin-1g-1254.webp",
+        "bytes": 165380
+      }
+    ]
+  },
+  {
+    "source": "negin-2g.png",
+    "bytes": 1863106,
+    "sha256": "cccba06d1d965f23e022001718458877aec55a1bc526d2deb8a94bdce8e909cf",
+    "variants": [
+      {
+        "width": 160,
+        "height": 160,
+        "file": "negin-2g-160.webp",
+        "bytes": 8192
+      },
+      {
+        "width": 320,
+        "height": 320,
+        "file": "negin-2g-320.webp",
+        "bytes": 23298
+      },
+      {
+        "width": 640,
+        "height": 640,
+        "file": "negin-2g-640.webp",
+        "bytes": 64486
+      },
+      {
+        "width": 960,
+        "height": 960,
+        "file": "negin-2g-960.webp",
+        "bytes": 114750
+      },
+      {
+        "width": 1254,
+        "height": 1254,
+        "file": "negin-2g-1254.webp",
+        "bytes": 162290
+      }
+    ]
+  },
+  {
+    "source": "poshal-1-mesghal.png",
+    "bytes": 1927538,
+    "sha256": "cc17684a9442e7866e0af1c4042edbd7ca4d86144877b7da44de352943f646ec",
+    "variants": [
+      {
+        "width": 160,
+        "height": 160,
+        "file": "poshal-1-mesghal-160.webp",
+        "bytes": 8766
+      },
+      {
+        "width": 320,
+        "height": 320,
+        "file": "poshal-1-mesghal-320.webp",
+        "bytes": 24708
+      },
+      {
+        "width": 640,
+        "height": 640,
+        "file": "poshal-1-mesghal-640.webp",
+        "bytes": 67414
+      },
+      {
+        "width": 960,
+        "height": 960,
+        "file": "poshal-1-mesghal-960.webp",
+        "bytes": 122466
+      },
+      {
+        "width": 1254,
+        "height": 1254,
+        "file": "poshal-1-mesghal-1254.webp",
+        "bytes": 176322
+      }
+    ]
+  },
+  {
+    "source": "poshal-1g.png",
+    "bytes": 1862834,
+    "sha256": "0f47253f7c409c2c44a15a7f6439eb3090e18ed66cd1b0daf9568dbbdd554f4d",
+    "variants": [
+      {
+        "width": 160,
+        "height": 160,
+        "file": "poshal-1g-160.webp",
+        "bytes": 8242
+      },
+      {
+        "width": 320,
+        "height": 320,
+        "file": "poshal-1g-320.webp",
+        "bytes": 23564
+      },
+      {
+        "width": 640,
+        "height": 640,
+        "file": "poshal-1g-640.webp",
+        "bytes": 64448
+      },
+      {
+        "width": 960,
+        "height": 960,
+        "file": "poshal-1g-960.webp",
+        "bytes": 114204
+      },
+      {
+        "width": 1254,
+        "height": 1254,
+        "file": "poshal-1g-1254.webp",
+        "bytes": 159834
+      }
+    ]
+  },
+  {
+    "source": "poshal-2g.png",
+    "bytes": 1885813,
+    "sha256": "29d616f1eea8095d48169d90613d1237ec57fac688c7792c4fc6521808ff7118",
+    "variants": [
+      {
+        "width": 160,
+        "height": 160,
+        "file": "poshal-2g-160.webp",
+        "bytes": 8236
+      },
+      {
+        "width": 320,
+        "height": 320,
+        "file": "poshal-2g-320.webp",
+        "bytes": 23794
+      },
+      {
+        "width": 640,
+        "height": 640,
+        "file": "poshal-2g-640.webp",
+        "bytes": 64794
+      },
+      {
+        "width": 960,
+        "height": 960,
+        "file": "poshal-2g-960.webp",
+        "bytes": 116162
+      },
+      {
+        "width": 1254,
+        "height": 1254,
+        "file": "poshal-2g-1254.webp",
+        "bytes": 162598
+      }
+    ]
+  },
+  {
+    "source": "shabeh-negin-1-mesghal.png",
+    "bytes": 1961938,
+    "sha256": "ed98a79f1e2a9c7484d13bb22da16b5c4daf57314bb0ca2ea3a6b88e994cee2e",
+    "variants": [
+      {
+        "width": 160,
+        "height": 160,
+        "file": "shabeh-negin-1-mesghal-160.webp",
+        "bytes": 8614
+      },
+      {
+        "width": 320,
+        "height": 320,
+        "file": "shabeh-negin-1-mesghal-320.webp",
+        "bytes": 24514
+      },
+      {
+        "width": 640,
+        "height": 640,
+        "file": "shabeh-negin-1-mesghal-640.webp",
+        "bytes": 67394
+      },
+      {
+        "width": 960,
+        "height": 960,
+        "file": "shabeh-negin-1-mesghal-960.webp",
+        "bytes": 122034
+      },
+      {
+        "width": 1254,
+        "height": 1254,
+        "file": "shabeh-negin-1-mesghal-1254.webp",
+        "bytes": 170900
+      }
+    ]
+  },
+  {
+    "source": "shabeh-negin-1g.png",
+    "bytes": 1883624,
+    "sha256": "7e48ca9e2edd6ebdf4b182015e37228755aa8d604e737175539fbff322ea941a",
+    "variants": [
+      {
+        "width": 160,
+        "height": 160,
+        "file": "shabeh-negin-1g-160.webp",
+        "bytes": 8320
+      },
+      {
+        "width": 320,
+        "height": 320,
+        "file": "shabeh-negin-1g-320.webp",
+        "bytes": 23594
+      },
+      {
+        "width": 640,
+        "height": 640,
+        "file": "shabeh-negin-1g-640.webp",
+        "bytes": 64908
+      },
+      {
+        "width": 960,
+        "height": 960,
+        "file": "shabeh-negin-1g-960.webp",
+        "bytes": 115544
+      },
+      {
+        "width": 1254,
+        "height": 1254,
+        "file": "shabeh-negin-1g-1254.webp",
+        "bytes": 163948
+      }
+    ]
+  },
+  {
+    "source": "shabeh-negin-2g.png",
+    "bytes": 1869981,
+    "sha256": "830c9c3f5790c9b6dee995083aa58916f481c8c1026d94841004f15faf0a25f0",
+    "variants": [
+      {
+        "width": 160,
+        "height": 160,
+        "file": "shabeh-negin-2g-160.webp",
+        "bytes": 8166
+      },
+      {
+        "width": 320,
+        "height": 320,
+        "file": "shabeh-negin-2g-320.webp",
+        "bytes": 22746
+      },
+      {
+        "width": 640,
+        "height": 640,
+        "file": "shabeh-negin-2g-640.webp",
+        "bytes": 63988
+      },
+      {
+        "width": 960,
+        "height": 960,
+        "file": "shabeh-negin-2g-960.webp",
+        "bytes": 114022
+      },
+      {
+        "width": 1254,
+        "height": 1254,
+        "file": "shabeh-negin-2g-1254.webp",
+        "bytes": 161714
+      }
+    ]
+  },
+  {
+    "source": "super-negin-1-mesghal.png",
+    "bytes": 1945371,
+    "sha256": "3a5aee3f03d20c25b4aa23fe444aed5e8adae345b7905d2e500470f7d75a1ba8",
+    "variants": [
+      {
+        "width": 160,
+        "height": 160,
+        "file": "super-negin-1-mesghal-160.webp",
+        "bytes": 8626
+      },
+      {
+        "width": 320,
+        "height": 320,
+        "file": "super-negin-1-mesghal-320.webp",
+        "bytes": 24844
+      },
+      {
+        "width": 640,
+        "height": 640,
+        "file": "super-negin-1-mesghal-640.webp",
+        "bytes": 66424
+      },
+      {
+        "width": 960,
+        "height": 960,
+        "file": "super-negin-1-mesghal-960.webp",
+        "bytes": 120780
+      },
+      {
+        "width": 1254,
+        "height": 1254,
+        "file": "super-negin-1-mesghal-1254.webp",
+        "bytes": 174712
+      }
+    ]
+  },
+  {
+    "source": "super-negin-1g.png",
+    "bytes": 1838867,
+    "sha256": "6a16935308039303b35f29883699b0307eb5af64ec2829549064feef164911bf",
+    "variants": [
+      {
+        "width": 160,
+        "height": 160,
+        "file": "super-negin-1g-160.webp",
+        "bytes": 7870
+      },
+      {
+        "width": 320,
+        "height": 320,
+        "file": "super-negin-1g-320.webp",
+        "bytes": 21584
+      },
+      {
+        "width": 640,
+        "height": 640,
+        "file": "super-negin-1g-640.webp",
+        "bytes": 60360
+      },
+      {
+        "width": 960,
+        "height": 960,
+        "file": "super-negin-1g-960.webp",
+        "bytes": 108218
+      },
+      {
+        "width": 1254,
+        "height": 1254,
+        "file": "super-negin-1g-1254.webp",
+        "bytes": 151172
+      }
+    ]
+  },
+  {
+    "source": "super-negin-2g.png",
+    "bytes": 1766014,
+    "sha256": "84afdcd5f36bb4b812068fe67ac6b00820a94c3d2effca459812e0f24dfee2ff",
+    "variants": [
+      {
+        "width": 160,
+        "height": 158,
+        "file": "super-negin-2g-160.webp",
+        "bytes": 7882
+      },
+      {
+        "width": 320,
+        "height": 315,
+        "file": "super-negin-2g-320.webp",
+        "bytes": 21918
+      },
+      {
+        "width": 640,
+        "height": 631,
+        "file": "super-negin-2g-640.webp",
+        "bytes": 58754
+      },
+      {
+        "width": 960,
+        "height": 946,
+        "file": "super-negin-2g-960.webp",
+        "bytes": 104486
+      },
+      {
+        "width": 1254,
+        "height": 1236,
+        "file": "super-negin-2g-1254.webp",
+        "bytes": 140366
+      }
+    ]
+  }
+]

@@ -31,15 +31,39 @@ export interface OrderItem {
   imageUrl?: string;
 }
 
+/**
+ * Product identity and quantity only. Maximum 99 units per product across duplicate lines and legacy aliases. The server determines price and product details; extra client fields are ignored.
+ */
+export interface CreateOrderItem {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  productId: string;
+  /**
+     * @minimum 1
+     * @maximum 99
+     */
+  quantity: number;
+}
+
 export interface CreateOrderRequest {
+  /** A UUID v4 identifying one logical checkout attempt; reuse it for retries. A committed key with different customer details or items returns 409. */
+  idempotencyKey: string;
+  /**
+     * Optional displayed-total assertion. Never used as the order price.
+     * @minimum 0
+     */
+  expectedTotal?: number;
   /**
      * @minLength 1
      * @maxLength 120
      */
   customerName: string;
   /**
+     * Iranian mobile number. Persian or Arabic digits, spaces, hyphens, +98 and 0098 are accepted; stored as 11 ASCII digits starting with 09.
      * @minLength 1
-     * @maxLength 32
+     * @maxLength 64
      */
   phone: string;
   /**
@@ -51,7 +75,7 @@ export interface CreateOrderRequest {
      * @minItems 1
      * @maxItems 50
      */
-  items: OrderItem[];
+  items: CreateOrderItem[];
 }
 
 export interface CreateOrderResponse {
@@ -76,12 +100,22 @@ export interface Order {
 }
 
 export interface AdminLoginRequest {
-  /** @minLength 1 */
+  /** @maxLength 64 */
+  username: string;
+  /**
+     * @minLength 1
+     * @maxLength 256
+     */
   password: string;
+  /** @pattern ^\d{6}$ */
+  code?: string;
+  /** @maxLength 32 */
+  recoveryCode?: string;
 }
 
 export interface AdminLoginResponse {
-  token: string;
+  authenticated: boolean;
+  enrollmentRequired: boolean;
 }
 
 export interface AdminOrdersResponse {

@@ -7,6 +7,7 @@ interface SectionHeadingProps {
   subtitle?: string;
   center?: boolean;
   className?: string;
+  as?: 'h1' | 'h2' | 'h3';
 }
 
 export function SectionHeading({
@@ -15,15 +16,16 @@ export function SectionHeading({
   subtitle,
   center = true,
   className = '',
+  as: Heading = 'h2',
 }: SectionHeadingProps) {
   return (
     <div className={`${center ? 'mx-auto max-w-2xl text-center' : 'max-w-2xl'} ${className}`}>
       {eyebrow && (
         <span className="reveal chip mb-4">{eyebrow}</span>
       )}
-      <h2 className="reveal reveal-delay-1 font-display text-3xl font-bold leading-tight text-cream-50 text-balance sm:text-4xl lg:text-[2.75rem]">
+      <Heading tabIndex={Heading === 'h1' ? -1 : undefined} className="reveal reveal-delay-1 font-display text-3xl font-bold leading-tight text-cream-50 text-balance sm:text-4xl lg:text-[2.75rem]">
         {title}
-      </h2>
+      </Heading>
       {center && <ArabesqueDivider className="reveal reveal-delay-2 mt-5" />}
       {subtitle && (
         <p className="reveal reveal-delay-2 mt-5 text-base leading-8 text-cream-300 text-pretty sm:text-lg">

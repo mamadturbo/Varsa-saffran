@@ -1,29 +1,5 @@
-export type ProductCategory =
-  | 'سوپر نگین'
-  | 'نگین'
-  | 'شبه نگین'
-  | 'سرگل'
-  | 'پوشال'
-  | 'رشته'
-  | 'هدیه';
-
-export interface Product {
-  id: string;
-  slug: string;
-  name: string;
-  category: ProductCategory;
-  short_description: string;
-  long_description: string | null;
-  crocin: number;
-  picrocrocin: number;
-  safranal: number;
-  weight: number;
-  weight_unit: string;
-  price: number;
-  image_url: string;
-  is_featured: boolean;
-  sort_order: number;
-}
+export type { ProductCategory, CatalogProduct as Product } from '@workspace/catalog';
+import type { CatalogProduct as Product } from '@workspace/catalog';
 
 export interface Article {
   id: string;
