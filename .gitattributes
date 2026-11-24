@@ -1,0 +1,2 @@
+# Preserve the byte checksum of the migration already applied in production.
+lib/db/migrations/0012_customer_order_tracking.sql -text
