@@ -5,10 +5,12 @@ import type { db } from "@workspace/db";
 import {
   ordersTable,
   orderDetails,
+  shipments,
   outbox,
   type OrderStatus,
 } from "@workspace/db/schema";
 import type { ManagementState } from "@workspace/catalog";
+import { recordOrderEvent, shipmentView } from "./tracking";
 import { StoreError } from "../../lib/management-store";
 export type OrderChangeHook = (
   tx: typeof db,
@@ -22,6 +24,7 @@ export async function updateManagedOrder(
   status: OrderStatus,
   trackingCode?: string,
   onChange?: OrderChangeHook,
+  shipping: { carrier?: string; actor?: string } = {},
 ) {
   const [current] = await tx
     .select()
@@ -43,50 +46,72 @@ export async function updateManagedOrder(
     trackingCode: "",
     reserved: false,
   }) as unknown as import("@workspace/catalog").OrderMeta;
+  const changed = current.status !== status;
+  const isFulfillment = status === "shipped" || status === "delivered";
+  const wasFulfilled = current.status === "shipped" || current.status === "delivered";
+  const actor = shipping.actor ?? "system:order";
+  if (wasFulfilled && (!isFulfillment || (current.status === "delivered" && status === "shipped")))
+    throw new StoreError("تغییر وضعیت سفارش ارسال‌شده به مرحلهٔ قبلی ممکن نیست.", 409);
   if (
-    ["shipped", "delivered"].includes(current.status) &&
-    status === "cancelled"
-  )
-    throw new StoreError("سفارش ارسال‌شده قابل لغو نیست.", 409);
-  await transitionInventory(tx, current, status, meta);
-  const previousTracking = meta.trackingCode;
-  if (trackingCode !== undefined) meta.trackingCode = trackingCode;
-  if (status === "delivered" && !meta.deliveredAt)
-    meta.deliveredAt = (
-      current.status === "delivered" ? current.updatedAt : new Date()
-    ).toISOString();
-  const [updated] = await tx
-    .update(ordersTable)
-    .set({ status, updatedAt: new Date() })
-    .where(eq(ordersTable.id, id))
-    .returning();
-  await tx
-    .update(orderDetails)
-    .set({
+    changed && isFulfillment && !wasFulfilled &&
+    details?.paymentMethod === "card_transfer" && details.paymentStatus !== "paid"
+  ) {
+    throw new StoreError("ابتدا واریز کارت‌به‌کارت را در بله تأیید کنید.", 409);
+  }
+
+  const [previousShipment] = await tx.select().from(shipments).where(eq(shipments.orderId, id));
+  const previousTracking = previousShipment ? previousShipment.trackingCode : meta.trackingCode || null;
+  const nextTracking = trackingCode === undefined ? previousTracking : trackingCode || null;
+  const nextCarrier = shipping.carrier === undefined ? previousShipment?.carrier ?? null : shipping.carrier || null;
+  const trackingChanged = nextTracking !== previousTracking || nextCarrier !== (previousShipment?.carrier ?? null);
+  const now = new Date();
+  const shippedAt = previousShipment?.shippedAt ?? (changed && status === "shipped" ? now : null);
+  const deliveredAt = previousShipment?.deliveredAt ?? (changed && status === "delivered" ? now : null);
+
+  if (changed || trackingChanged) {
+    if (changed) await transitionInventory(tx, current, status, meta);
+    meta.trackingCode = nextTracking ?? "";
+    if (deliveredAt) meta.deliveredAt = deliveredAt.toISOString();
+    await tx.update(orderDetails).set({
       meta: meta as unknown as Record<string, unknown>,
-      fulfillmentStatus:
-        status === "delivered"
-          ? "delivered"
-          : status === "shipped"
-            ? "shipped"
-            : "unfulfilled",
-    })
-    .where(eq(orderDetails.orderId, id));
-  if (current.status !== status)
-    await tx
-      .insert(outbox)
-      .values({
-        id: `order-status:${id}:${randomUUID()}`,
-        kind: "order.status",
-        payload: { orderId: id, status },
-      })
-      .onConflictDoNothing();
-  if (
-    onChange &&
-    (current.status !== status ||
-      (trackingCode !== undefined && trackingCode !== previousTracking))
-  )
-    await onChange(tx, updated, current.status);
+      fulfillmentStatus: isFulfillment ? status : "unfulfilled",
+    }).where(eq(orderDetails.orderId, id));
+  }
+
+  let shipment = previousShipment;
+  if (trackingChanged || (changed && isFulfillment)) {
+    const values = { carrier: nextCarrier, trackingCode: nextTracking, shippedAt, deliveredAt };
+    [shipment] = await tx.insert(shipments).values({ orderId: id, ...values })
+      .onConflictDoUpdate({ target: shipments.orderId, set: values }).returning();
+  }
+
+  let updated = current;
+  if (changed || trackingChanged) {
+    [updated] = await tx.update(ordersTable).set({ status, updatedAt: now })
+      .where(eq(ordersTable.id, id)).returning();
+  }
+  if (changed) {
+    await recordOrderEvent(tx, {
+      orderId: id, kind: "status_changed", value: status, actor, occurredAt: now,
+    });
+    await tx.insert(outbox).values({
+      id: `order-status:${id}:${randomUUID()}`,
+      kind: "order.status",
+      payload: { orderId: id, status },
+    });
+  }
+  if (trackingChanged) {
+    await recordOrderEvent(tx, {
+      orderId: id, kind: "shipment_updated", actor, occurredAt: now,
+    });
+  }
+  if (onChange && (changed || trackingChanged)) await onChange(tx, updated, current.status);
   const { idempotencyKey: _k, requestFingerprint: _f, ...safe } = updated;
-  return { ...safe, id: String(updated.id), management: meta };
+  return {
+    ...safe,
+    id: String(updated.id),
+    management: meta,
+    paymentStatus: details?.paymentStatus ?? "unpaid",
+    shipment: shipmentView(shipment),
+  };
 }

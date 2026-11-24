@@ -10,7 +10,11 @@ Set only owner-confirmed public business details in the storefront environment:
 | `VITE_INSTAGRAM_URL` | Direct HTTPS public profile on `instagram.com` or `www.instagram.com` |
 | `VITE_TELEGRAM_URL` | Direct HTTPS public username/channel on `t.me` or `telegram.me` |
 
-All values are public build inputs. Leave an unavailable or unconfirmed field
+The storefront uses the phone confirmed by the owner on 20 November 2026 when
+store settings do not supply a valid public phone. Page metadata and visible
+contact details resolve the same configuration.
+
+All configured values are public inputs. Leave an unavailable or unconfirmed field
 blank. The old telephone, email, address and platform-root URLs were placeholders
 and have been removed. No contact value has been invented to replace them.
 

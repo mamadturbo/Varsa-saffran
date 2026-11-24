@@ -1,4 +1,4 @@
-import type { CatalogProduct } from '@workspace/catalog';
+import type { StorefrontProduct as CatalogProduct } from "@workspace/catalog";
 import { isGiftCategory } from './buying-guide';
 
 export interface WeightChoice { weight: number; unit: string }

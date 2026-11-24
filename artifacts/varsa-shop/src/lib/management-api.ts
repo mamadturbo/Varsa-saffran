@@ -8,7 +8,46 @@ import type {
 } from "@workspace/catalog";
 import type { Order } from "@workspace/api-client-react";
 import type { OrderMeta } from "@workspace/catalog";
-export type AdminOrder = Order & { management: OrderMeta | null };
+export type PaymentStatus = "unpaid" | "paid" | "refunded";
+export type Shipment = {
+  carrier: string | null;
+  trackingCode: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+};
+export type OrderTracking = {
+  status: Order["status"];
+  paymentStatus: PaymentStatus;
+  fulfillmentStatus: string;
+  receiptStatus: "pending" | "approved" | "rejected" | null;
+  shipment: Shipment | null;
+  events: Array<{
+    id: number;
+    kind: "order_created" | "status_changed" | "receipt_submitted" | "receipt_reviewed" | "shipment_updated";
+    value: string | null;
+    occurredAt: string;
+    actor?: string;
+  }>;
+};
+export type AdminOrder = Order & {
+  management: OrderMeta | null;
+  shipment?: Shipment | null;
+  paymentStatus?: PaymentStatus;
+  customerContactId?: string | null;
+};
+
+export async function readAdminOrder(id: string) {
+  return (await customFetch<{ order: AdminOrder }>(`/api/admin/orders/${encodeURIComponent(id)}`, {
+    signal: AbortSignal.timeout(20000),
+  })).order;
+}
+
+export function readOrderTracking(id: string, admin: boolean, signal: AbortSignal) {
+  const scope = admin ? "admin" : "customer";
+  return customFetch<OrderTracking>(`/api/${scope}/orders/${encodeURIComponent(id)}/tracking`, {
+    signal: AbortSignal.any([signal, AbortSignal.timeout(20000)]),
+  });
+}
 export type StoreContent = {
   banners: Banner[];
   settings: StoreSettings;
@@ -63,12 +102,13 @@ export const saveFulfillment = async (
   id: string,
   status: string,
   trackingCode: string,
+  carrier?: string,
 ) =>
   (
     await customFetch<{ order: AdminOrder }>(`/api/admin/orders/${id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, trackingCode }),
+      body: JSON.stringify({ status, trackingCode, carrier }),
       signal: AbortSignal.timeout(20000),
     })
   ).order;

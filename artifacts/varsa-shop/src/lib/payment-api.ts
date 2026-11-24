@@ -1,4 +1,4 @@
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch, type CreateOrderResponse, type OrderStatus } from "@workspace/api-client-react";
 
 export type CardTransferConfig =
   | { enabled: false }
@@ -9,9 +9,10 @@ export type CardTransferConfig =
       bankName: string;
     };
 export interface PaymentView {
-  order: { id: string; orderNumber: string; total: number; status: string };
+  order: { id: string; orderNumber: string; total: number; status: OrderStatus };
   paymentStatus: string;
   shippingConfigured: boolean;
+  canSubmitReceipt?: boolean;
   config: CardTransferConfig;
   receipt: null | {
     id: string;
@@ -20,18 +21,25 @@ export interface PaymentView {
     deliveryStatus: string;
   };
 }
-export function rememberPayment(id: string, key: string) {
+const recentPayments = new Map<string, { key: string; receipt: CreateOrderResponse }>();
+
+export function rememberPayment(receipt: CreateOrderResponse, key: string) {
+  recentPayments.set(receipt.id, { key, receipt });
   try {
-    sessionStorage.setItem(`varsa-payment:${id}`, key);
+    sessionStorage.setItem(`varsa-payment:${receipt.id}`, key);
   } catch {
-    /* Checkout retains its key in memory. */
+    /* Payment can still use the key for this visit. */
   }
 }
+export function rememberedOrder(id: string) {
+  return recentPayments.get(id)?.receipt;
+}
 export function paymentKey(id: string) {
+  const key = recentPayments.get(id)?.key;
   try {
-    return sessionStorage.getItem(`varsa-payment:${id}`) ?? undefined;
+    return key ?? sessionStorage.getItem(`varsa-payment:${id}`) ?? undefined;
   } catch {
-    return undefined;
+    return key;
   }
 }
 export function paymentRequest<T>(

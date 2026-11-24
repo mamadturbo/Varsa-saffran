@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { createServer as createTcpServer } from "node:net";
 import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
@@ -256,35 +256,48 @@ try {
       "Sensitive sentinel leaked in actual API log",
     );
   assert(!apiLogs.includes(csrfToken), "CSRF token leaked in actual API log");
-  const frontEnv = {
-    ...process.env,
-    METADATA_API_URL: origin,
-    VITE_SITE_URL: "https://varsa.example.test",
-    SEO_REQUIRE_COMPLETE: "1",
-  };
-  const buildOutput = await run(
-    [
-      path.join(frontRoot, "node_modules/vite/bin/vite.js"),
-      "build",
-      "--config",
-      path.join(frontRoot, "vite.config.ts"),
-    ],
-    frontEnv,
-    frontRoot,
-  );
-  assert(buildOutput.includes("built in"));
-  const manifest = JSON.parse(
-    await readFile(
-      path.join(frontRoot, "dist/public/metadata-snapshots.json"),
-      "utf8",
-    ),
-  );
-  assert.deepEqual(manifest.warnings, []);
-  assert(
-    manifest.pages.some(
-      (p: { route: string }) => p.route === "/journal/local-smoke",
-    ),
-  );
+  const vite = path.join(frontRoot, "node_modules/vite/bin/vite.js");
+  const frontEnv = { ...process.env, BASE_PATH: "/" };
+  await run([vite, "build"], frontEnv, frontRoot);
+  await run([vite, "build", "--ssr", "src/entry-server.tsx", "--outDir", "dist/server"], frontEnv, frontRoot);
+
+  const port = await freePort();
+  const frontOrigin = `http://127.0.0.1:${port}`;
+  const siteUrl = `https://127.0.0.1:${port}`;
+  const { storefrontHandler } = await import(pathToFileURL(path.join(frontRoot, "dist/server/entry-server.js")).href);
+  const template = await readFile(path.join(frontRoot, "dist/public/index.html"), "utf8");
+  const handle = storefrontHandler({ apiOrigin: origin, siteUrl, indexable: true, template: async () => template });
+  const frontend = createServer((req, res) => {
+    void handle(req, res, () => res.writeHead(404).end()).catch(() => res.writeHead(500).end());
+  });
+  let pages = 0;
+  frontend.listen(port, "127.0.0.1");
+  await once(frontend, "listening");
+  try {
+    const get = (route: string) => fetch(frontOrigin + route, { redirect: "manual" });
+    const sitemap = await get("/sitemap.xml");
+    assert.equal(sitemap.status, 200);
+    assert.match(sitemap.headers.get("content-type") ?? "", /^application\/xml/);
+    const paths = [...(await sitemap.text()).matchAll(/<loc>(.*?)<\/loc>/g)].map(match => new URL(match[1]).pathname);
+    assert(paths.includes("/journal/local-smoke"));
+    for (const route of paths) {
+      const response = await get(route);
+      assert.equal(response.status, 200, route);
+      assert.equal(response.headers.get("x-robots-tag"), null, route);
+      assert((await response.text()).includes('<main'), route);
+      pages++;
+    }
+    const article = await get("/journal/local-smoke");
+    assert((await article.text()).includes("Isolated migration verification"));
+    assert.equal((await get("/shop/")).headers.get("location"), "/shop");
+    for (const route of ["/missing", "/products/nonexistent", "/journal/nonexistent"]) {
+      assert.equal((await get(route)).status, 404, route);
+    }
+    assert.equal((await get("/admin")).headers.get("x-robots-tag"), "noindex,nofollow");
+  } finally {
+    frontend.closeAllConnections();
+    await new Promise<void>(resolve => frontend.close(() => resolve()));
+  }
   const report = {
     environment: "isolated local; no production services or data",
     postgres: "real PostgreSQL via embedded-postgres, UTF8",
@@ -309,9 +322,8 @@ try {
       uploadsAuthenticateBeforeBodyParsing: true,
     },
     frontend: {
-      strictMetadataBuild: true,
-      pages: manifest.pages.length,
-      warnings: manifest.warnings,
+      serverRendered: true,
+      verifiedSitemapPages: pages,
     },
     legacyUpstreamStopped: true,
   };

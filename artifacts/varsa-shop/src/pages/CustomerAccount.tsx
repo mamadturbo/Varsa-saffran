@@ -1,7 +1,7 @@
-import { VarsaMark, VarsaLogo } from '@/components/Brand';
+import { VarsaLogo } from '@/components/Brand';
 import { DeliveryImage } from '@/components/DeliveryImage';
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Link, useSearch } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import {
   Menu,
   ShoppingBag,
@@ -16,7 +16,6 @@ import {
   ArrowLeft,
   Plus,
   Package,
-  Truck,
   Check,
   X,
   RefreshCw,
@@ -29,6 +28,7 @@ import type {
   CustomerCase,
   ProductReview,
 } from "@workspace/catalog";
+import { OrderTrackingHistory } from "@/components/OrderTrackingHistory";
 import { useCustomer } from "@/lib/customer";
 import {
   customerRequest,
@@ -38,6 +38,7 @@ import {
   type CustomerOrder,
 } from "@/lib/customer-api";
 import { useCart } from "@/lib/cart";
+import { CHECKOUT_PATHS } from "@/lib/routes";
 import { MAX_ORDER_LINES, MAX_PRODUCT_QUANTITY } from "@workspace/validation";
 import { fetchProducts } from "@/lib/api";
 import type { Product } from "@/lib/types";
@@ -121,7 +122,7 @@ function Sheet({
       onClose={onClose}
       layer={90}
       dismissible={!busy}
-      className="varsa-customer vc-sheet"
+      className="varsa-customer vc-storefront vc-sheet"
     >
       <header>
         <StoreDialogTitle asChild>
@@ -394,20 +395,23 @@ function AddressEditor({
   const [draft, setDraft] = useState(value),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  const input = (key: keyof CustomerAddress, label: string, max = 120) => (
-    <label className="vc-field" key={key}>
-      <span>{label}</span>
-      <input
-        required
-        maxLength={max}
-        value={String(draft[key])}
-        onChange={(e) => setDraft((p) => ({ ...p, [key]: e.target.value }))}
-        inputMode={
-          ["phone", "postalCode"].includes(key) ? "numeric" : undefined
-        }
-      />
-    </label>
-  );
+  const input = (key: keyof CustomerAddress, label: string, max = 120) => {
+    const numeric = key === "phone" || key === "postalCode";
+    return (
+      <label className="vc-field" key={key}>
+        <span>{label}</span>
+        <input
+          required
+          maxLength={max}
+          dir={numeric ? "ltr" : undefined}
+          className={numeric ? "text-end" : undefined}
+          value={String(draft[key])}
+          onChange={(e) => setDraft((p) => ({ ...p, [key]: e.target.value }))}
+          inputMode={numeric ? "numeric" : undefined}
+        />
+      </label>
+    );
+  };
   return (
     <Sheet title="آدرس گیرنده" onClose={onClose} busy={busy}>
       <form
@@ -479,6 +483,7 @@ function Reorder({
   onClose: () => void;
 }) {
   const { add, items: cart } = useCart();
+  const [, navigate] = useLocation();
   const [products, setProducts] = useState<Product[] | null>(null),
     [quantities, setQuantities] = useState<Record<string, number>>({}),
     [error, setError] = useState("");
@@ -590,6 +595,7 @@ function Reorder({
                   if (n > 0) add(p, n);
                 }
                 onClose();
+                navigate(CHECKOUT_PATHS.cart);
               }}
             >
               افزودن انتخاب‌ها به سبد
@@ -637,7 +643,7 @@ function ProfileForm() {
     >
       <label className="vc-field">
         <span>شماره موبایل تأییدشده</span>
-        <input dir="ltr" readOnly value={customer!.phone} />
+        <input dir="ltr" className="text-end" readOnly value={customer!.phone} />
       </label>
       <p className="vc-hint">
         این شماره هویت حساب شماست. برای تغییر آن با پشتیبانی هماهنگ کنید.
@@ -655,6 +661,7 @@ function ProfileForm() {
         <input
           type="email"
           dir="ltr"
+          className="text-end"
           maxLength={200}
           value={form.email}
           onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
@@ -697,6 +704,7 @@ export function CustomerAccount() {
   const account = useCustomer(),
     search = useSearch();
   const requestedView = new URLSearchParams(search).get("view");
+  const trackingRequested = new URLSearchParams(search).get("track") === "1";
   const view = tabs.some((t) => t[0] === requestedView)
     ? requestedView!
     : "overview";
@@ -725,6 +733,26 @@ export function CustomerAccount() {
     [reviewBody, setReviewBody] = useState(""),
     [saving, setSaving] = useState(false),
     [claim, setClaim] = useState("");
+  const [claimError, setClaimError] = useState("");
+  const [claiming, setClaiming] = useState(false);
+  const claimOrder = async (orderNumber: string) => {
+    setClaiming(true);
+    setClaimError("");
+    try {
+      const { orderId } = await customerRequest<{ orderId: string }>(
+        "/customer/claim-order", "POST", { orderNumber },
+      );
+      setClaim("");
+      const dashboard = await getDashboard();
+      setData(dashboard);
+      setOrder(dashboard.orders.find((item) => item.id === orderId) ?? null);
+      setNotice("سفارش به حساب شما اضافه شد.");
+    } catch (e) {
+      setClaimError(fail(e));
+    } finally {
+      setClaiming(false);
+    }
+  };
   const reload = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -763,7 +791,7 @@ export function CustomerAccount() {
   }, [view]);
   if (!account.ready)
     return (
-      <main className="varsa-customer vc-account">
+      <main className="varsa-customer vc-storefront vc-account">
         <CustomerEmpty title="در حال دریافت حساب…">
           <Loader2 className="animate-spin" />
         </CustomerEmpty>
@@ -771,14 +799,16 @@ export function CustomerAccount() {
     );
   if (!account.customer)
     return (
-      <main className="varsa-customer vc-account">
+      <main className="container-luxe min-h-[75vh] pb-16 pt-28 sm:pt-32">
         {account.error && (
-          <p className="vc-error" role="alert">
+          <p className="mx-auto mb-4 max-w-md rounded-xl border border-crimson-500/30 bg-crimson-500/10 p-3 text-sm leading-6 text-crimson-700 dark:text-crimson-200" role="alert">
             ارتباط با حساب برقرار نشد.{" "}
-            <button onClick={() => void account.refresh()}>تلاش مجدد</button>
+            <button type="button" className="min-h-11 underline underline-offset-4" onClick={() => void account.refresh()}>تلاش مجدد</button>
           </p>
         )}
-        <CustomerLogin />
+        <CustomerLogin tracking={trackingRequested ? {
+          orderNumber: claim, onOrderNumberChange: setClaim, claim: claimOrder,
+        } : undefined} />
       </main>
     );
   const c = account.customer,
@@ -847,14 +877,14 @@ export function CustomerAccount() {
       isDefault: !c.profile.addresses.length,
     });
   const accountNavigation = <>
-    <Link href="/shop" className="vc-sidebar-brand"><VarsaMark tone="rust" aria-hidden="true" className="vc-brand-mark" /><div><VarsaLogo tone="rust" className="vc-brand-logo" /><small>حساب کاربری شما</small></div></Link>
+    <Link href="/shop" className="vc-sidebar-brand" aria-label="بازگشت به فروشگاه ورسا"><VarsaLogo aria-hidden="true" className="vc-brand-logo" /></Link>
           <div className="vc-identity">
             <span>
               {c.profile.name?.slice(0, 1) || <UserRound size={23} />}
             </span>
             <div>
               <strong>{c.profile.name || "همراه ورسا"}</strong>
-              <small dir="ltr">{toFaDigits(c.phone)}</small>
+              <small><bdi dir="ltr">{toFaDigits(c.phone)}</bdi></small>
             </div>
             <ShieldCheck size={17} />
           </div>
@@ -906,7 +936,7 @@ export function CustomerAccount() {
     profile: 'اطلاعات شخصی و تنظیمات اطلاع‌رسانی خود را مدیریت کنید.',
   };
   return (
-    <main className="varsa-customer vc-account vc-account-shell">
+    <main className="varsa-customer vc-storefront vc-account vc-account-shell">
       <div className="vc-page-heading">
         <div>
           <Link href="/shop">
@@ -928,7 +958,7 @@ export function CustomerAccount() {
         </button>
         </div>
       </div>
-      <StoreDialog id="account-navigation" open={navigationOpen} onClose={() => setNavigationOpen(false)} layer={65} className="varsa-customer vc-sidebar vc-navigation-dialog">
+      <StoreDialog id="account-navigation" open={navigationOpen} onClose={() => setNavigationOpen(false)} layer={65} className="varsa-customer vc-storefront vc-sidebar vc-navigation-dialog">
         <StoreDialogTitle className="sr-only">بخش‌های حساب کاربری</StoreDialogTitle>
         <button className="vc-icon vc-navigation-close" onClick={() => setNavigationOpen(false)} aria-label="بستن فهرست حساب"><X size={20}/></button>
         {accountNavigation}
@@ -956,7 +986,6 @@ export function CustomerAccount() {
                 <>
                   <section className="vc-welcome">
                     <div>
-                      <span>ورسا، برای لحظه‌های دلگشا</span>
                       <h2>
                         {c.profile.name
                           ? `${c.profile.name}، خوش آمدید`
@@ -1036,49 +1065,25 @@ export function CustomerAccount() {
                     <h2>سفارش‌های من</h2>
                     <span>{toFaDigits(orders.length)} سفارش</span>
                   </div>
-                  {ordersList(orders)}
-                  <form
-                    className="vc-claim"
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      setSaving(true);
-                      setError("");
-                      try {
-                        await customerRequest("/customer/claim-order", "POST", {
-                          orderNumber: claim,
-                        });
-                        setClaim("");
-                        await reload();
-                        setNotice("سفارش به حساب شما اضافه شد.");
-                      } catch (err) {
-                        setError(fail(err));
-                      } finally {
-                        setSaving(false);
-                      }
-                    }}
-                  >
+                  <form className="vc-claim" onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!claiming) void claimOrder(claim);
+                  }}>
                     <div>
-                      <h3>قبلاً بدون ورود خرید کرده‌اید؟</h3>
-                      <p>کد سفارش ثبت‌شده با همین شماره موبایل را وارد کنید.</p>
+                      <h3>پیگیری سفارش مهمان</h3>
+                      <p>شمارهٔ سفارشی را که با موبایل همین حساب ثبت کردید وارد کنید.</p>
                     </div>
                     <label>
-                      <span className="sr-only">کد سفارش مهمان</span>
-                      <input
-                        dir="ltr"
-                        placeholder="VRS-..."
-                        maxLength={32}
-                        required
-                        value={claim}
-                        onChange={(e) => setClaim(e.target.value)}
-                      />
+                      <span className="sr-only">شمارهٔ سفارش مهمان</span>
+                      <input dir="ltr" className="text-end" placeholder="VRS-…" maxLength={32} required
+                        value={claim} disabled={claiming} onChange={(e) => setClaim(e.target.value)} />
                     </label>
-                    <button
-                      className="vc-button vc-secondary"
-                      disabled={saving}
-                    >
-                      افزودن سفارش
+                    <button className="vc-button vc-secondary" disabled={claiming}>
+                      {claiming ? "در حال پیگیری…" : "پیگیری سفارش"}
                     </button>
                   </form>
+                  {claimError && <p className="vc-error" role="alert">{claimError}</p>}
+                  {ordersList(orders)}
                 </section>
               )}
               {view === "addresses" && (
@@ -1346,7 +1351,7 @@ export function CustomerAccount() {
           )}
         </div>
       </div>
-      {order && (
+      {order && data?.customer.id === c.id && (
         <Sheet title="جزئیات سفارش" onClose={() => setOrder(null)}>
           <div className="vc-order-detail">
             <div className="vc-order-title">
@@ -1355,44 +1360,7 @@ export function CustomerAccount() {
             </div>
             <p className="vc-hint">{date(order.createdAt)}</p>
             <Link href={`/payment/${order.id}`} className="vc-button vc-secondary">پرداخت و پیگیری رسید</Link>
-            <div className="vc-order-timeline">
-              {[
-                "pending",
-                "confirmed",
-                "processing",
-                "shipped",
-                "delivered",
-              ].map((v, i) => (
-                <div
-                  key={v}
-                  className={
-                    [
-                      "pending",
-                      "confirmed",
-                      "processing",
-                      "shipped",
-                      "delivered",
-                    ].indexOf(order.status) >= i
-                      ? "done"
-                      : ""
-                  }
-                >
-                  <span>
-                    {i === 4 ? <Check size={14} /> : <Package size={14} />}
-                  </span>
-                  <small>{labels[v]}</small>
-                </div>
-              ))}
-            </div>
-            {order.management?.trackingCode && (
-              <div className="vc-tracking">
-                <Truck size={21} />
-                <div>
-                  کد رهگیری مرسوله
-                  <strong dir="ltr">{order.management.trackingCode}</strong>
-                </div>
-              </div>
-            )}
+            <OrderTrackingHistory key={order.id} orderId={order.id} />
             <h3>بسته‌های سفارش</h3>
             {order.items.map((i) => (
               <div className="vc-detail-item" key={i.productId}>
@@ -1428,10 +1396,6 @@ export function CustomerAccount() {
                 <dd>{formatPrice(order.total)}</dd>
               </div>
             </dl>
-            <p className="vc-hint">
-              پرداخت آنلاین در سایت فعال نیست؛ این مبلغ، تأیید پرداخت محسوب
-              نمی‌شود.
-            </p>
             <h3>گیرنده و نشانی ثبت‌شده</h3>
             <p>
               {order.customerName}

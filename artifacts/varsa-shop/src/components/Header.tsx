@@ -1,4 +1,4 @@
-import { pagePath } from '@/lib/routes';
+import { CHECKOUT_PATHS, pagePath } from '@/lib/routes';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { Menu, Moon, ShoppingBag, Sun, X, UserRound } from 'lucide-react';
@@ -26,7 +26,7 @@ export function Header({ page }: HeaderProps) {
   const CONTACT = useStoreContact();
   const shipping = useShippingInfo();
   const scrolled = useScrolled(30);
-  const { count, open, isOpen: cartOpen } = useCart();
+  const { count } = useCart();
   const { theme, toggle } = useTheme();
 
 
@@ -98,13 +98,10 @@ export function Header({ page }: HeaderProps) {
             </button>
 
             {/* Cart */}
-            <button
-              onClick={open}
+            <Link
+              href={CHECKOUT_PATHS.cart}
               className="relative flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/25 text-accent transition-all duration-500 ease-luxe hover:border-gold-400 hover:bg-gold-500/10 hover:text-accent"
               aria-label="سبد خرید"
-              aria-haspopup="dialog"
-              aria-expanded={cartOpen}
-              aria-controls="cart-dialog"
             >
               <ShoppingBag className="h-5 w-5" strokeWidth={1.5} />
               {count > 0 && (
@@ -112,7 +109,7 @@ export function Header({ page }: HeaderProps) {
                   {count > 9 ? '۹+' : '۰۱۲۳۴۵۶۷۸۹'[count]}
                 </span>
               )}
-            </button>
+            </Link>
 
             {/* Mobile menu toggle */}
             <button

@@ -8,7 +8,7 @@ import {
   reservations,
   outbox,
   customerOrderLinksTable,
-  customerNotificationsTable,
+  storeConfig,
 } from "@workspace/db/schema";
 import type { Database } from "../catalog/repository";
 import {
@@ -19,6 +19,8 @@ import {
 } from "../files/storage";
 import { StoreError } from "../../lib/management-store";
 import { updateManagedOrder, type OrderChangeHook } from "../orders/status";
+import { recordOrderEvent } from "../orders/tracking";
+import { notifyCustomer } from "../notifications/customer";
 import { cardTransferConfig } from "./config";
 
 export function matchesOrderKey(actual: string | null, supplied?: string) {
@@ -39,6 +41,15 @@ export async function latestReceipt(db: Database, orderId: number) {
     .limit(1);
   return receipt;
 }
+export function acceptsReceipt(
+  status: string,
+  details: Pick<typeof orderDetails.$inferSelect, "paymentStatus" | "paymentMethod"> | undefined,
+) {
+  return details?.paymentStatus === "unpaid" &&
+    (status === "pending" ||
+      (details.paymentMethod === "card_transfer" && ["confirmed", "processing"].includes(status)));
+}
+
 export async function submitReceipt(
   db: Database,
   orderId: number,
@@ -65,10 +76,7 @@ export async function submitReceipt(
       .from(orderDetails)
       .where(eq(orderDetails.orderId, orderId));
     if (
-      !order ||
-      order.status !== "pending" ||
-      !details ||
-      details.paymentStatus !== "unpaid"
+      !order || !details || !acceptsReceipt(order.status, details)
     )
       throw new StoreError(
         "این سفارش قابل پرداخت نیست. وضعیت سفارش را بررسی کنید.",
@@ -135,6 +143,13 @@ export async function submitReceipt(
         },
       })
       .returning();
+    await recordOrderEvent(tx, {
+      orderId,
+      kind: "receipt_submitted",
+      actor: "customer:receipt",
+      eventKey: `receipt-submitted:${id}`,
+      occurredAt: receipt.createdAt,
+    });
     await tx
       .update(orderDetails)
       .set({ paymentMethod: "card_transfer" })
@@ -178,7 +193,7 @@ export async function reviewReceipt(
     .where(eq(orderDetails.orderId, found.orderId));
   if (
     !order ||
-    !["pending", "confirmed"].includes(order.status) ||
+    !["pending", "confirmed", "processing"].includes(order.status) ||
     details?.paymentStatus !== "unpaid" ||
     order.total !== receipt.amount
   )
@@ -186,19 +201,31 @@ export async function reviewReceipt(
       "وضعیت سفارش تغییر کرده است؛ از پنل مدیریت بررسی کنید.",
       409,
     );
+  const reviewedAt = new Date();
+  await recordOrderEvent(tx, {
+    orderId: order.id,
+    kind: "receipt_reviewed",
+    value: action,
+    actor,
+    eventKey: `receipt-reviewed:${id}`,
+    occurredAt: reviewedAt,
+  });
   if (action === "approved") {
     await tx
       .update(orderDetails)
       .set({ paymentStatus: "paid" })
       .where(eq(orderDetails.orderId, order.id));
-    await updateManagedOrder(
-      {} as ManagementState,
-      tx,
-      order.id,
-      "confirmed",
-      undefined,
-      onChange,
-    );
+    if (order.status === "pending") {
+      await updateManagedOrder(
+        {} as ManagementState,
+        tx,
+        order.id,
+        "confirmed",
+        undefined,
+        onChange,
+        { actor },
+      );
+    }
   } else {
     await tx
       .update(reservations)
@@ -212,28 +239,25 @@ export async function reviewReceipt(
   }
   await tx
     .update(receipts)
-    .set({ status: action, reviewedBy: actor, reviewedAt: new Date() })
+    .set({ status: action, reviewedBy: actor, reviewedAt })
     .where(eq(receipts.id, id));
   const [link] = await tx
     .select()
     .from(customerOrderLinksTable)
     .where(eq(customerOrderLinksTable.orderId, order.id));
-  if (link)
-    await tx
-      .insert(customerNotificationsTable)
-      .values({
-        customerId: link.customerId,
-        orderId: order.id,
-        title:
-          action === "approved"
-            ? "پرداخت و سفارش تأیید شد"
-            : "رسید پرداخت تأیید نشد",
-        message:
-          action === "approved"
-            ? `پرداخت سفارش ${order.orderNumber} بررسی و تأیید شد.`
-            : `رسید سفارش ${order.orderNumber} تأیید نشد؛ رسید صحیح را ارسال کنید یا با فروشگاه تماس بگیرید.`,
-        smsStatus: "disabled",
-      });
+  if (link) {
+    const [config] = await tx.select().from(storeConfig).where(eq(storeConfig.id, "main"));
+    await notifyCustomer(
+      tx,
+      link.customerId,
+      action === "approved" ? "پرداخت و سفارش تأیید شد" : "رسید پرداخت تأیید نشد",
+      action === "approved"
+        ? `پرداخت سفارش ${order.orderNumber} بررسی و تأیید شد.`
+        : `رسید سفارش ${order.orderNumber} تأیید نشد. رسید صحیح را ارسال کنید یا با فروشگاه تماس بگیرید.`,
+      order.id,
+      action === "approved" && config?.settings.transactionalSmsEnabled === true,
+    );
+  }
   await tx
     .insert(outbox)
     .values({

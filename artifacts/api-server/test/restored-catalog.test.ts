@@ -8,7 +8,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { getRestoredCatalog } from "@workspace/catalog";
 import { loadOrderCatalog } from "../src/lib/catalog";
 import { createOrderHandler } from "../src/lib/create-order";
-import { loadMetaProducts } from "../../varsa-shop/src/lib/meta-data";
+import { publicProducts } from "../../varsa-shop/src/lib/public-page";
 import { PRODUCT_VARIANTS } from "./legacy-catalog";
 
 test("restored catalog exactly matches the original twelve names, weights, prices and images", async () => {
@@ -44,11 +44,11 @@ test("restored catalog exactly matches the original twelve names, weights, price
   assert.equal(getRestoredCatalog()[0].price, 449000);
 });
 
-test("storefront metadata and server use the same restored source, including subfolder assets", async () => {
+test("restored server catalog and projected storefront records preserve product data and subfolder assets", async () => {
   assert.deepEqual(await loadOrderCatalog(), getRestoredCatalog());
   assert.deepEqual(
-    await loadMetaProducts({ catalogSource: "restored", basePath: "/store/" }),
-    getRestoredCatalog("/store/"),
+    JSON.parse(JSON.stringify(publicProducts(getRestoredCatalog("/store/")))),
+    getRestoredCatalog("/store/").map(({ crocin, picrocrocin, safranal, ...publicProduct }) => publicProduct),
   );
   assert.ok(
     getRestoredCatalog("/store/").every((p) =>

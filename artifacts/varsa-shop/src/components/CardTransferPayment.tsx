@@ -4,19 +4,15 @@ import {
   paymentKey,
   paymentRequest,
   receiptData,
+  rememberedOrder,
   type PaymentView,
 } from "@/lib/payment-api";
 import { getApiErrorMessage } from "@/lib/orders-api";
 import { formatPrice } from "@/lib/site";
+import { ORDER_RECEIPT_STATUS } from "@/lib/order-receipt";
 
-export function CardTransferPayment({
-  orderId,
-  orderKey,
-}: {
-  orderId: string;
-  orderKey?: string;
-}) {
-  const key = orderKey ?? paymentKey(orderId);
+export function CardTransferPayment({ orderId }: { orderId: string }) {
+  const key = paymentKey(orderId);
   const [view, setView] = useState<PaymentView | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
@@ -87,9 +83,12 @@ export function CardTransferPayment({
     }
   }
   const approved = view?.paymentStatus === "paid";
+  const order = view?.order ?? rememberedOrder(orderId);
+  const orderStatus = order && ORDER_RECEIPT_STATUS[order.status];
   const pending = view?.receipt?.status === "pending";
   const payable =
-    view?.order.status === "pending" &&
+    view &&
+    (view.canSubmitReceipt ?? view.order.status === "pending") &&
     view.shippingConfigured &&
     !approved &&
     !pending;
@@ -98,6 +97,34 @@ export function CardTransferPayment({
       className="w-full space-y-4 text-right text-sm leading-7 text-cream-200"
       aria-label="پرداخت کارت‌به‌کارت"
     >
+      {order && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-bold text-cream-50">
+            {orderStatus?.title ?? "وضعیت سفارش"}
+          </h2>
+          {orderStatus && <p>{orderStatus.message}</p>}
+          <dl className="space-y-2 rounded-xl border border-gold-500/25 bg-gold-500/5 p-4">
+            <div className="flex flex-wrap justify-between gap-x-4">
+              <dt>کد سفارش</dt>
+              <dd dir="ltr" className="select-all font-bold text-accent">
+                {order.orderNumber}
+              </dd>
+            </div>
+            {orderStatus && (
+              <div className="flex flex-wrap justify-between gap-x-4">
+                <dt>وضعیت سفارش</dt>
+                <dd>{orderStatus.label}</dd>
+              </div>
+            )}
+            <div className="flex flex-wrap justify-between gap-x-4">
+              <dt>مبلغ سفارش</dt>
+              <dd className="font-bold text-price">
+                {formatPrice(order.total)}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      )}
       {error && (
         <p
           role="alert"
@@ -125,32 +152,25 @@ export function CardTransferPayment({
         </button>
       ) : (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <strong>پرداخت سفارش {view.order.orderNumber}</strong>
-            <button
-              type="button"
-              aria-label="به‌روزرسانی وضعیت پرداخت"
-              className="flex min-h-11 items-center gap-2 text-accent"
-              onClick={() =>
-                void refresh().catch((e) =>
-                  setError(getApiErrorMessage(e, "به‌روزرسانی انجام نشد.")),
-                )
-              }
-            >
-              <RefreshCw size={18} />
-              به‌روزرسانی
-            </button>
-          </div>
+          <button
+            type="button"
+            aria-label="به‌روزرسانی وضعیت پرداخت"
+            className="flex min-h-11 items-center gap-2 text-accent"
+            onClick={() =>
+              void refresh().catch((e) =>
+                setError(getApiErrorMessage(e, "به‌روزرسانی انجام نشد.")),
+              )
+            }
+          >
+            <RefreshCw size={18} />
+            به‌روزرسانی
+          </button>
           {approved ? (
             <p
               role="status"
               className="rounded-xl border border-gold-500/40 p-4"
             >
-              پرداخت شما تأیید شد. وضعیت سفارش:{" "}
-              {view.order.status === "confirmed"
-                ? "تأییدشده"
-                : "برای پیگیری به حساب خود مراجعه کنید"}
-              .
+              پرداخت شما تأیید شد. وضعیت سفارش را در حساب خود ببینید.
             </p>
           ) : pending ? (
             <>

@@ -4,6 +4,7 @@ import { ArrowLeft, Quote } from 'lucide-react';
 import { SAFFRON_PHOTOS } from '@/lib/saffron-photos';
 import { SectionHeading } from '@/components/SectionHeading';
 import { SaffronPhoto } from '@/components/SaffronPhoto';
+import { VARSA } from '@/lib/brand-identity';
 
 
 export function StoryPreview() {
@@ -25,7 +26,7 @@ export function StoryPreview() {
             <SectionHeading
               center={false}
               title={<>ورسا؛ <span className="gold-text">دلگشای سفره‌های اصیل</span></>}
-              subtitle="عطر زعفران بخشی از خاطره آشپزی ایرانی است. ورسا با الهام از این خاطره، محصولات زعفران را برای آشپزی و هدیه معرفی می‌کند."
+              subtitle={VARSA.description}
             />
 
             <div className="reveal reveal-delay-3 mt-8 rounded-2xl border border-gold-500/20 bg-gradient-to-b from-gold-500/[0.06] to-transparent p-6">

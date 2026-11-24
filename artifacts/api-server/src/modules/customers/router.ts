@@ -2,6 +2,8 @@ import { readState } from "../catalog/repository";
 import { readProfile, saveProfile } from "./repository";
 import { readCase, saveMessages, caseViews } from "../support/repository";
 import { fileService, encodeUpload } from "../files/storage";
+import { readOrderTracking } from "../orders/tracking";
+import { notifyCustomer } from "../notifications/customer";
 import { enqueueLegacySms, processOne } from "../notifications/queue";
 import { randomUUID } from "node:crypto";
 import { Router, type Request, type Response } from "express";
@@ -32,7 +34,7 @@ import {
   enforceCustomerOrigin,
   sendCustomerSms,
 } from "../../lib/customer-auth";
-import { hasValidAdminToken } from "../../lib/admin-auth";
+import { adminIdentity, hasValidAdminToken } from "../../lib/admin-auth";
 import { StoreError, type ManagementStore } from "../../lib/management-store";
 import {
   updateManagedOrder,
@@ -70,43 +72,13 @@ export function createCustomerServices(
   sender = sendCustomerSms,
 ) {
   const auth = createCustomerAuth(database, sender);
-  const notify = async (
-    tx: typeof database,
-    cid: string,
-    title: string,
-    message: string,
-    orderId: number | null = null,
-    smsEnabled = false,
-  ) => {
-    const [owner] = await tx
-      .select()
-      .from(customersTable)
-      .where(eq(customersTable.id, cid));
-    const profile = owner?.profile as unknown as CustomerProfile | undefined;
-    const [notification] = await tx
-      .insert(customerNotificationsTable)
-      .values({
-        customerId: cid,
-        title,
-        message,
-        orderId,
-        smsStatus: smsEnabled && profile?.smsUpdates ? "pending" : "disabled",
-      })
-      .returning();
-    if (notification.smsStatus === "pending")
-      await tx.insert(outbox).values({
-        id: `sms:${notification.id}`,
-        kind: "sms.notification",
-        payload: { notificationId: notification.id },
-      });
-  };
   const flushSms = async () => {
     await enqueueLegacySms(database);
     for (let i = 0; i < 100 && (await processOne(database, sender)); i++) {
       /* bounded explicit drain */
     }
   };
-  const onOrderChange: OrderChangeHook = async (tx, order) => {
+  const onOrderChange: OrderChangeHook = async (tx, order, previous) => {
     const [link] = await tx
       .select()
       .from(customerOrderLinksTable)
@@ -116,14 +88,19 @@ export function createCustomerServices(
         .select()
         .from(storeConfig)
         .where(eq(storeConfig.id, "main"));
-      await notify(
+      const [details] = await tx.select({ method: orderDetails.paymentMethod }).from(orderDetails)
+        .where(eq(orderDetails.orderId, order.id));
+      const smsEnabled =
+        (settings.settings as { transactionalSmsEnabled?: boolean }).transactionalSmsEnabled === true;
+      await notifyCustomer(
         tx,
         link.customerId,
         "وضعیت سفارش تغییر کرد",
         `سفارش ${order.orderNumber}: ${statusLabels[order.status] ?? order.status}`,
         order.id,
-        (settings.settings as { transactionalSmsEnabled?: boolean })
-          .transactionalSmsEnabled ?? false,
+        smsEnabled && (details?.method === "card_transfer"
+          ? order.status === "shipped" && previous !== "shipped"
+          : order.status !== previous),
       );
     }
   };
@@ -139,7 +116,7 @@ export function createCustomerServices(
       );
     return c?.id;
   };
-  return { auth, notify, flushSms, onOrderChange, afterChange, identity };
+  return { auth, notify: notifyCustomer, flushSms, onOrderChange, afterChange, identity };
 }
 export type CustomerServices = ReturnType<typeof createCustomerServices>;
 
@@ -307,7 +284,7 @@ export function createCustomerRouter(
         customer: c,
         orders: joined.map(
           ({
-            order: { idempotencyKey: _k, requestFingerprint: _f, ...o },
+            order: { idempotencyKey: _k, requestFingerprint: _f, customerContactId: _contact, ...o },
             details,
           }) => ({
             ...o,
@@ -323,6 +300,14 @@ export function createCustomerRouter(
       });
     }),
   );
+  router.get("/customer/orders/:id/tracking", route(async (req, res) => {
+    const c = await auth.requireCustomer(req);
+    const id = idNumber(req.params.id);
+    await owns(database, c.id, id);
+    const tracking = await readOrderTracking(database, id);
+    if (!tracking) throw new StoreError("سفارش پیدا نشد.", 404);
+    res.set("Cache-Control", "private, no-store").json(tracking);
+  }));
   router.put(
     "/customer/profile",
     route(async (req, res) => {
@@ -424,34 +409,25 @@ export function createCustomerRouter(
       const c = await auth.requireCustomer(req);
       await auth.limit(`claim:${c.id}`, 10, 3600);
       const code = text(obj(req.body).orderNumber, 32).toUpperCase();
-      await database.transaction(async (raw) => {
+      const orderId = await database.transaction(async (raw) => {
         const tx = raw as unknown as typeof database;
-        const [order] = await tx
-          .select()
-          .from(ordersTable)
-          .where(
-            and(
-              eq(ordersTable.orderNumber, code),
-              eq(ordersTable.phone, c.phone),
-            ),
-          );
-        if (!order)
-          throw new StoreError(
-            "سفارشی با این کد و شماره تأییدشده پیدا نشد.",
-            404,
-          );
-        const [link] = await tx
-          .select()
-          .from(customerOrderLinksTable)
+        const [order] = await tx.select().from(ordersTable)
+          .where(eq(ordersTable.orderNumber, code)).for("update");
+        const [account] = await tx.select({ phone: customersTable.phone }).from(customersTable)
+          .where(eq(customersTable.id, c.id)).for("share");
+        if (!account || account.phone !== c.phone)
+          throw new StoreError("برای پیگیری دوباره وارد حساب شوید.", 401);
+        const notFound = () => new StoreError("سفارشی با این کد و شماره تأییدشده پیدا نشد.", 404);
+        if (!order) throw notFound();
+        const [link] = await tx.select().from(customerOrderLinksTable)
           .where(eq(customerOrderLinksTable.orderId, order.id));
-        if (link && link.customerId !== c.id)
-          throw new StoreError("سفارش قابل افزودن به این حساب نیست.", 409);
-        await tx
-          .insert(customerOrderLinksTable)
-          .values({ orderId: order.id, customerId: c.id })
-          .onConflictDoNothing();
+        if (link?.customerId === c.id) return order.id;
+        if (normalizeIranMobile(order.phone) !== account.phone) throw notFound();
+        if (link) throw new StoreError("سفارش قابل افزودن به این حساب نیست.", 409);
+        await tx.insert(customerOrderLinksTable).values({ orderId: order.id, customerId: c.id });
+        return order.id;
       });
-      res.json({ ok: true });
+      res.set("Cache-Control", "private, no-store").json({ ok: true, orderId: String(orderId) });
     }),
   );
   router.post(
@@ -807,6 +783,7 @@ export function createCustomerRouter(
             "cancelled",
             undefined,
             services.onOrderChange,
+            { actor: `admin:${adminIdentity(req)?.id ?? "unknown"}` },
           );
         }
         const payload = await readCase(tx, row);

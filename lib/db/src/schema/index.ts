@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 export * from './commerce';
-import { check, index, uniqueIndex, integer, jsonb, pgTable, serial, text, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
+export * from './tracking';
+import { check, index, uniqueIndex, integer, jsonb, pgTable, serial, text, timestamp, varchar, boolean, uuid } from "drizzle-orm/pg-core";
 
 export const ORDER_STATUSES = [
   "pending",
@@ -21,6 +22,11 @@ export interface OrderItem {
   imageUrl?: string;
 }
 
+export const customerContacts = pgTable("customer_contacts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  phone: varchar("phone", { length: 11 }).notNull().unique(),
+}, (t) => [check("customer_contacts_mobile_check", sql`${t.phone} ~ '^09[0-9]{9}$'`)]);
+
 export const ordersTable = pgTable(
   "orders",
   {
@@ -28,6 +34,7 @@ export const ordersTable = pgTable(
     orderNumber: varchar("order_number", { length: 32 }).notNull().unique(),
     idempotencyKey: varchar("idempotency_key", { length: 36 }),
     requestFingerprint: varchar("request_fingerprint", { length: 64 }),
+    customerContactId: uuid("customer_contact_id").references(() => customerContacts.id),
     customerName: varchar("customer_name", { length: 120 }).notNull(),
     phone: varchar("phone", { length: 32 }).notNull(),
     address: text("address").notNull(),
@@ -40,6 +47,9 @@ export const ordersTable = pgTable(
   (table) => ({
     statusIdx: index("orders_status_idx").on(table.status),
     createdAtIdx: index("orders_created_at_idx").on(table.createdAt),
+    contactHistoryIdx: index("orders_contact_history_idx").on(
+      table.customerContactId, table.createdAt.desc(), table.id.desc(),
+    ),
     idempotencyIdx: uniqueIndex("orders_idempotency_key_unique").on(table.idempotencyKey),
   }),
 );

@@ -1,4 +1,4 @@
-import { parseCatalogProduct } from '@workspace/catalog';
+import { parseStorefrontProduct } from '@workspace/catalog';
 import { MAX_PRODUCT_QUANTITY, MAX_ORDER_LINES } from '@workspace/validation';
 import type { CartItem, Product } from './types';
 
@@ -52,7 +52,7 @@ export function normalizeCartItems(value: unknown): CartItem[] {
   for (const raw of value) {
     if (!raw || typeof raw !== 'object' || !positiveInteger(raw.quantity)) continue;
     try {
-      const product = parseCatalogProduct(raw.product);
+      const product = parseStorefrontProduct(raw.product);
       items = addCartItem(items, product, raw.quantity);
     } catch {
       // A broken row must not prevent the rest of the cart from loading.

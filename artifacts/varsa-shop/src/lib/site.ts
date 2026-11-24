@@ -1,12 +1,13 @@
 import { SAFFRON_PHOTOS } from './saffron-photos';
+import { VARSA } from './brand-identity';
 
 export const CATEGORIES = ['همه', 'سوپر نگین', 'نگین', 'شبه نگین', 'پوشال'] as const;
 
 export const SITE = {
-  name: 'ورسا',
+  name: VARSA.shortName,
   tagline: 'دلگشای سفره‌های اصیل',
-  mantra: 'از مزرعه تا سفره، با هنرِ کویر و عطرِ دلگشای ورسا.',
-  shipping: 'روش، هزینه و زمان ارسال هنوز نهایی نشده‌اند؛ هزینه ارسال در جمع کالاها محاسبه نمی‌شود.',
+  mantra: 'عطر زعفران ورسا، از آشپزخانه تا سفرهٔ مهمانی.',
+  shipping: 'هزینهٔ ارسال در جمع کالاها محاسبه نمی‌شود. پیش از پرداخت دربارهٔ هزینه و زمان ارسال با پشتیبانی هماهنگ کنید.',
 };
 
 // Existing project artwork, not documentary photography of the farm or goods.
@@ -34,19 +35,19 @@ export const BRAND_ARTWORK = {
 export const HERO_SLIDES = [
   {
     image: SAFFRON_PHOTOS.flowers.src,
-    eyebrow: 'زعفران نابِ کویر',
+    eyebrow: 'زعفران ورسا',
     title: 'ورسا؛ دلگشای سفره‌های اصیل',
     subtitle: 'زعفران را برای آشپزی یا هدیه انتخاب کنید؛ وزن، مشخصات و قیمت بسته‌ها را در فروشگاه ببینید.',
   },
   {
     image: SAFFRON_PHOTOS.spoon.src,
-    eyebrow: 'بسته‌بندی فلزی اختصاصی',
+    eyebrow: 'طرح بسته‌بندی ورسا',
     title: 'عطرِ کویر، در قفلی از هنر',
     subtitle: 'با طرح بسته‌بندی ورسا آشنا شوید و مشخصات هر بسته را در صفحه محصول بخوانید.',
   },
   {
     image: SAFFRON_PHOTOS.field.src,
-    eyebrow: 'پک‌های هدیه‌ی ورسا',
+    eyebrow: 'انتخاب زعفران برای هدیه',
     title: 'هدیه‌ای ماندگار، باارزش و اصیل',
     subtitle: 'برای مناسبت‌هایی که با عطر زعفران به یاد می‌مانند',
   },

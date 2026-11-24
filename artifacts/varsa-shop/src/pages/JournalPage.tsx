@@ -3,9 +3,9 @@ import { Link } from 'wouter';
 import { useState } from 'react';
 import { ArrowLeft, Clock, Loader2 } from 'lucide-react';
 import type { Article } from '@/lib/types';
-import { fetchArticles } from '@/lib/api';
+import { usePublicPage } from '@/lib/page-context';
+import { GUIDE_ARTICLES } from '@/lib/guide-articles';
 import { useReveal } from '@/lib/hooks';
-import { useAsyncData } from '@/lib/hooks-extra';
 import { toFaDigits } from '@/lib/site';
 import { SectionHeading } from '@/components/SectionHeading';
 import { DeliveryImage } from '@/components/DeliveryImage';
@@ -13,7 +13,8 @@ import { DeliveryImage } from '@/components/DeliveryImage';
 
 export function JournalPage() {
   const ref = useReveal<HTMLElement>();
-  const { data: articles, loading, error } = useAsyncData(fetchArticles, []);
+  const { data, loading } = usePublicPage();
+  const articles = data.articles ?? [];
   const cats = useMemoCats(articles);
 
   const [active, setActive] = useState('همه');
@@ -36,6 +37,14 @@ export function JournalPage() {
 
       <section className="py-14">
         <div className="container-luxe">
+          <section aria-labelledby="journal-guides" className="mb-10 card-luxe p-6">
+            <h2 id="journal-guides" className="text-xl font-bold text-cream-50">راهنماهای زعفران</h2>
+            <ul className="mt-3">
+              {GUIDE_ARTICLES.map(article => <li key={article.slug}>
+                <Link className="inline-flex min-h-11 items-center text-accent underline underline-offset-4" href={article.path}>{article.title}</Link>
+              </li>)}
+            </ul>
+          </section>
           {/* Category filter */}
           <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
             {cats.map((cat) => (
@@ -58,7 +67,7 @@ export function JournalPage() {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-accent" strokeWidth={1.5} />
             </div>
-          ) : error ? (
+          ) : data.articles === null ? (
             <p className="py-20 text-center text-cream-400">بارگذاری مقالات با خطا روبه‌رو شد.</p>
           ) : !articles?.length ? (
             <p className="py-20 text-center text-cream-400">هنوز مقاله‌ای در مجله منتشر نشده است.</p>
@@ -99,7 +108,7 @@ export function JournalPage() {
                       <Link href={articlePath(a.slug)}
                         className="flex min-h-11 items-center gap-1 text-sm font-medium text-accent transition-colors hover:text-accent"
                       >
-                        ادامه مطلب
+                        ادامهٔ {a.title}
                         <ArrowLeft className="h-4 w-4" strokeWidth={2} />
                       </Link>
                     </div>

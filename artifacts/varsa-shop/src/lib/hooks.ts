@@ -53,6 +53,7 @@ export function useReveal<T extends HTMLElement = HTMLDivElement>() {
         if (rect.top < window.innerHeight && rect.bottom > 0) {
           reveal(el);
         } else {
+          el.classList.add('reveal-pending');
           io.observe(el);
         }
       });

@@ -1,4 +1,5 @@
-import type { CatalogProduct } from "@workspace/catalog";
+import type { StorefrontProduct as CatalogProduct } from "@workspace/catalog";
+import { VARSA } from "./brand-identity";
 
 export interface ProductJsonLd {
   "@context": "https://schema.org";
@@ -8,7 +9,7 @@ export interface ProductJsonLd {
   description: string;
   sku: string;
   category: string;
-  brand: { "@type": "Brand"; name: "ورسا" };
+  brand: { "@type": "Brand"; name: string; alternateName: string[] };
   url?: string;
   image?: string[];
   weight?: { "@type": "QuantitativeValue"; value: number; unitText: string };
@@ -16,13 +17,15 @@ export interface ProductJsonLd {
     "@type": "Offer";
     price: string;
     priceCurrency: "IRR";
+    availability?: "https://schema.org/InStock" | "https://schema.org/OutOfStock";
     url?: string;
+    seller?: { "@id": string; "@type": "Organization"; name: string };
   };
 }
 
 export function buildProductJsonLd(
   product: CatalogProduct,
-  page: { url?: string; image?: string; description: string },
+  page: { url?: string; image?: string; description: string; sellerId?: string },
 ): ProductJsonLd | undefined {
   // Catalog and checkout amounts use conventional toman. This conversion is
   // limited to schema.org's ISO-currency price; cart/order values stay unchanged.
@@ -41,7 +44,7 @@ export function buildProductJsonLd(
     description: page.description,
     sku: product.id,
     category: product.category,
-    brand: { "@type": "Brand", name: "ورسا" },
+    brand: { "@type": "Brand", name: VARSA.name, alternateName: [VARSA.englishName, VARSA.shortName] },
     offers: {
       "@type": "Offer",
       price: String(product.price * 10),
@@ -54,6 +57,9 @@ export function buildProductJsonLd(
     result.offers.url = page.url;
   }
   if (page.image) result.image = [page.image];
+  if (page.sellerId) {
+    result.offers.seller = { "@id": page.sellerId, "@type": "Organization", name: VARSA.name };
+  }
   const massUnits = new Set(["گرم", "کیلوگرم", "مثقال", "g", "kg"]);
   if (
     Number.isFinite(product.weight) &&
@@ -65,12 +71,12 @@ export function buildProductJsonLd(
       value: product.weight,
       unitText: product.weight_unit,
     };
-  // The catalog has no stock, reviews, delivery or return-policy fields. Do not
-  // invent them to satisfy optional rich-result recommendations.
+  if (Number.isSafeInteger(product.stock) && product.stock! >= 0)
+    result.offers.availability = product.stock === 0 ? "https://schema.org/OutOfStock" : "https://schema.org/InStock";
   return result;
 }
 
-export function serializeJsonLd(value: ProductJsonLd): string {
+export function serializeJsonLd(value: unknown): string {
   return JSON.stringify(value).replace(
     /[<>&\u2028\u2029]/g,
     (character) =>

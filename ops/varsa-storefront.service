@@ -1,0 +1,22 @@
+[Unit]
+Description=Varsa storefront rendering
+After=network-online.target varsa-api.service
+Wants=network-online.target varsa-api.service
+
+[Service]
+Type=simple
+User=varsa
+WorkingDirectory=/opt/varsa/current/artifacts/varsa-shop
+EnvironmentFile=/etc/varsa/storefront.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node serve-storefront.mjs
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

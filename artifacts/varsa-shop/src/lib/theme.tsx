@@ -22,9 +22,11 @@ function getInitialTheme(): Theme {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [theme, setTheme] = useState<Theme | null>(null);
+  useEffect(() => setTheme(getInitialTheme()), []);
 
   useEffect(() => {
+    if (!theme) return;
     const root = document.documentElement;
     root.classList.toggle('light', theme === 'light');
     root.classList.toggle('dark', theme === 'dark');
@@ -36,7 +38,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const toggle = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
 
   return (
-    <ThemeContext.Provider value={{ theme, toggle }}>
+    <ThemeContext.Provider value={{ theme: theme ?? 'dark', toggle }}>
       {children}
     </ThemeContext.Provider>
   );

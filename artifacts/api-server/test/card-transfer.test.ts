@@ -14,6 +14,10 @@ import {
   ordersTable,
   orderDetails,
   cardTransferReceipts,
+  customerNotificationsTable,
+  customerOrderLinksTable,
+  customersTable,
+  orderEvents,
   outbox,
   reservations,
   inventory,
@@ -21,8 +25,10 @@ import {
 import { migrateTest, seedTest } from "./commerce-fixture";
 import { mountSecurity, secureFetch } from "./security-fixture";
 import { createManagementStore, StoreError } from "../src/lib/management-store";
+import { createOrdersRouter } from "../src/lib/orders-router";
 import { paymentRoutes } from "../src/modules/payments/router";
 import { createCustomerServices } from "../src/modules/customers/router";
+import { updateManagedOrder } from "../src/modules/orders/status";
 import { cardTransferConfig } from "../src/modules/payments/config";
 import { submitReceipt, reviewReceipt } from "../src/modules/payments/service";
 import {
@@ -35,6 +41,7 @@ import { expireOne } from "../src/modules/inventory/expiry";
 import {
   claimJob,
   finishJob,
+  handleJob,
   MAX_ATTEMPTS,
 } from "../src/modules/notifications/queue";
 
@@ -49,6 +56,15 @@ mountSecurity(app, db);
 const payments = paymentRoutes(db, services);
 app.use("/api", payments.beforeBody);
 app.use(express.json({ limit: "6mb" }));
+app.use(
+  "/api",
+  createOrdersRouter(
+    db,
+    async () => (await store.publicState()).products.filter((p) => p.active),
+    store,
+    services.identity,
+  ),
+);
 app.use("/api", payments.router);
 app.use(
   (
@@ -57,18 +73,16 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
-    res
-      .status(error instanceof StoreError ? error.status : 503)
-      .json({
-        message: error instanceof StoreError ? error.message : "failure",
-      });
+    res.status(error instanceof StoreError ? error.status : 503).json({
+      message: error instanceof StoreError ? error.message : "failure",
+    });
   },
 );
 let base: string,
   server: ReturnType<typeof app.listen>,
   root: string,
   png: string;
-let order: Awaited<ReturnType<typeof store.save>>, key: string;
+let order: typeof ordersTable.$inferSelect, key: string;
 before(async () => {
   process.env.SESSION_SECRET = "isolated-card-transfer-secret";
   process.env.CUSTOMER_AUTH_SECRET = "isolated-card-transfer-customer-secret";
@@ -103,38 +117,30 @@ beforeEach(async () => {
     "TRUNCATE orders RESTART IDENTITY CASCADE; TRUNCATE commerce_products CASCADE; TRUNCATE coupons CASCADE; TRUNCATE store_config; TRUNCATE content_entries; TRUNCATE outbox; TRUNCATE security_limits; UPDATE bale_bot_state SET next_offset=0",
   );
   await seedTest(db);
-  const state = await store.publicState(),
-    product = state.products.find((p) => p.active)!;
   // Configure an explicit final shipping amount for payment.
   await db.execute(
     sql`UPDATE store_config SET settings=jsonb_set(settings,'{shippingEnabled}','true'::jsonb)`,
   );
+  const product = (await store.publicState()).products.find((p) => p.active)!;
   key = randomUUID();
-  const { priceOrder } = await import("../src/lib/management-store");
-  const pricing = priceOrder(
-    await store.publicState(),
-    [{ productId: product.id, quantity: 1 }],
-    "",
-  );
-  order = await store.save({
-    orderNumber: "VRS-ISOLATED-" + randomUUID().slice(0, 8),
-    idempotencyKey: key,
-    requestFingerprint: "isolated",
-    customerName: "مشتری آزمایشی",
-    phone: "09120000000",
-    address: "نشانی آزمایشی",
-    items: [
-      {
-        productId: product.id,
-        name: product.name,
-        unitPrice: product.price,
-        quantity: 1,
-        imageUrl: "",
-      },
-    ],
-    total: pricing.total,
-    status: "pending",
+  const created = await secureFetch(`${base}/orders`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      idempotencyKey: key,
+      customerName: "مشتری آزمایشی",
+      phone: "09120000000",
+      address: "نشانی آزمایشی",
+      items: [{ productId: product.id, quantity: 1 }],
+    }),
   });
+  assert.equal(created.status, 201);
+  const { id } = await created.json();
+  [order] = await db
+    .select()
+    .from(ordersTable)
+    .where(eq(ordersTable.id, Number(id)));
+  assert.ok(order);
 });
 after(async () => {
   if (server)
@@ -272,8 +278,24 @@ test("malformed images and unknown shipping amount cannot enter the review queue
   );
   assert.equal((await db.select().from(cardTransferReceipts)).length, 0);
 });
-test("Bale gets a real multipart photo and approval buttons without a public receipt URL", async () => {
-  const receipt = await submitReceipt(db, order.id, png, "image/png");
+test("an order can be paid via a Bale callback and the worker sends confirmation to the same chat", async (context) => {
+  const payment = await (await request()).json();
+  assert.equal(payment.config.enabled, true);
+  assert.equal(payment.order.total, order.total);
+  assert.equal(payment.shippingConfigured, true);
+  assert.equal(payment.paymentStatus, "unpaid");
+
+  const upload = await request("/receipt", "POST", {
+    data: png,
+    mime: "image/png",
+  });
+  assert.equal(upload.status, 201);
+  const { receipt } = await upload.json();
+  const [stored] = await db
+    .select()
+    .from(cardTransferReceipts)
+    .where(eq(cardTransferReceipts.id, receipt.id));
+  let approve: string | undefined;
   const call: BaleCall = async <T>(
     method: string,
     data: Record<string, unknown> | FormData,
@@ -282,11 +304,51 @@ test("Bale gets a real multipart photo and approval buttons without a public rec
     assert.ok(data instanceof FormData);
     assert.ok(data.get("photo") instanceof Blob);
     assert.match(String(data.get("caption")), /تومان/);
-    assert.match(String(data.get("reply_markup")), new RegExp(receipt.id));
-    assert.ok(!String(data.get("caption")).includes(receipt.objectKey));
+    assert.ok(!String(data.get("caption")).includes(stored.objectKey));
+    const [reviewButtons] = JSON.parse(
+      String(data.get("reply_markup")),
+    ).inline_keyboard;
+    approve = reviewButtons[0]?.callback_data;
+    assert.equal(approve, `pay:a:${receipt.id}`);
+    assert.equal(reviewButtons[1]?.callback_data, `pay:r:${receipt.id}`);
     return { message_id: 9 } as T;
   };
   await sendReceiptToBale(db, receipt.id, call);
+  assert.ok(approve);
+  const update = callback(receipt.id);
+  update.callback_query.data = approve;
+  const methods: string[] = [];
+  await pollBale(db, async <T>(method: string) => {
+    methods.push(method);
+    return (method === "getUpdates" ? [update] : true) as T;
+  });
+  assert.deepEqual(methods, ["getUpdates", "answerCallbackQuery"]);
+  const paid = await (await request()).json();
+  assert.equal(paid.receipt.status, "approved");
+  assert.equal(paid.paymentStatus, "paid");
+  assert.equal(paid.order.status, "confirmed");
+
+  const [approvalJob] = await db
+    .select()
+    .from(outbox)
+    .where(eq(outbox.id, `receipt-reviewed:${receipt.id}`));
+  assert.ok(approvalJob);
+  const sendMessage = context.mock.method(
+    globalThis,
+    "fetch",
+    async (url: string, options: RequestInit) => {
+      const endpoint = new URL(url);
+      assert.equal(endpoint.origin, "https://tapi.bale.ai");
+      assert.ok(endpoint.pathname.endsWith("/sendMessage"));
+      const message = JSON.parse(String(options.body));
+      assert.equal(message.chat_id, "123");
+      assert.match(message.text, /تأیید شد/);
+      assert.ok(message.text.includes(order.orderNumber));
+      return Response.json({ ok: true, result: { message_id: 10 } });
+    },
+  );
+  await handleJob(db, approvalJob);
+  assert.equal(sendMessage.mock.callCount(), 1);
 });
 test("only allowed Bale user and private chat can approve; repeated or opposite clicks keep the first decision", async () => {
   const receipt = await submitReceipt(db, order.id, png, "image/png");
@@ -320,14 +382,12 @@ test("awaiting review does not expire stock; rejection permits a corrected recei
     .update(inventory)
     .set({ available: 5 })
     .where(eq(inventory.variantId, product.variantId));
-  await db
-    .insert(reservations)
-    .values({
-      orderId: order.id,
-      variantId: product.variantId,
-      quantity: 1,
-      expiresAt: new Date(Date.now() - 1000),
-    });
+  await db.insert(reservations).values({
+    orderId: order.id,
+    variantId: product.variantId,
+    quantity: 1,
+    expiresAt: new Date(Date.now() - 1000),
+  });
   const first = await submitReceipt(db, order.id, png, "image/png");
   assert.equal(await expireOne(db), false);
   await review(first.id, "rejected");
@@ -357,13 +417,11 @@ test("cancelled order cannot be approved and receipt cannot be reused for anothe
       requestFingerprint: "other",
     })
     .returning();
-  await db
-    .insert(orderDetails)
-    .values({
-      orderId: other.id,
-      meta: { shippingConfigured: true },
-      addressSnapshot: {},
-    });
+  await db.insert(orderDetails).values({
+    orderId: other.id,
+    meta: { shippingConfigured: true },
+    addressSnapshot: {},
+  });
   await assert.rejects(
     submitReceipt(db, other.id, png, "image/png"),
     /سفارش دیگری/,
@@ -424,4 +482,38 @@ test("failed delivery remains visible and can be retried without uploading again
   assert.ok(job);
   await finishJob(db, job);
   assert.equal((await db.select().from(cardTransferReceipts)).length, 1);
+});
+
+test("card checkout blocks dispatch until reviewed during preparation and enqueues each opted-in milestone once", async () => {
+  const status = (value: "processing" | "shipped") => db.transaction((tx) =>
+    updateManagedOrder({} as Awaited<ReturnType<typeof store.read>>, tx as unknown as typeof db,
+      order.id, value, "00066", services.onOrderChange, { carrier: "پست", actor: "admin:test" }));
+  const [details] = await db.select().from(orderDetails).where(eq(orderDetails.orderId, order.id));
+  assert.equal(details.paymentMethod, "card_transfer");
+  await assert.rejects(status("shipped"), (e: StoreError) => e.status === 409);
+
+  const customerId = randomUUID();
+  await db.insert(customersTable).values({
+    id: customerId, phone: "09121112222", profile: { smsUpdates: true },
+  });
+  await db.insert(customerOrderLinksTable).values({ orderId: order.id, customerId });
+  await db.execute(sql`UPDATE store_config SET settings=jsonb_set(settings,'{transactionalSmsEnabled}','true'::jsonb)`);
+  await status("processing");
+  assert.equal((await (await request()).json()).canSubmitReceipt, true);
+  const uploaded = await request("/receipt", "POST", { data: png, mime: "image/png" });
+  assert.equal(uploaded.status, 201);
+  const { receipt } = await uploaded.json();
+  const update = callback(receipt.id);
+  await db.transaction((tx) => handleBaleUpdate(tx as unknown as typeof db, update));
+  await db.transaction((tx) => handleBaleUpdate(tx as unknown as typeof db, update));
+  const [prepared] = await db.select().from(ordersTable).where(eq(ordersTable.id, order.id));
+  assert.equal(prepared.status, "processing");
+  await status("shipped");
+  await status("shipped");
+  const events = await db.select().from(orderEvents).where(eq(orderEvents.orderId, order.id));
+  assert.equal(events.filter((event) => event.kind === "receipt_reviewed").length, 1);
+  assert.equal(events.filter((event) => event.kind === "status_changed" && event.value === "shipped").length, 1);
+  const pending = await db.select().from(customerNotificationsTable)
+    .where(eq(customerNotificationsTable.customerId, customerId));
+  assert.equal(pending.filter((notification) => notification.smsStatus === "pending").length, 2);
 });

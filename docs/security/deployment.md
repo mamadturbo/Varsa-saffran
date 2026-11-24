@@ -9,7 +9,7 @@
 3. Node 24، pnpm دقیقاً طبق packageManager و lockfile را روی ماشین build آماده کنید. native modules Argon2/Sharp باید برای **سیستم مقصد** نصب شوند؛ node_modules ویندوز را به Linux منتقل نکنید. نصب build toolchain باید در محیط build غیرعملیاتی باشد.
 4. `pnpm install --frozen-lockfile`، `node scripts/security-audit.mjs`، typecheck، تست و build را روی همان release انجام دهید. devDependencies فقط در build/test استفاده می‌شوند؛ S3rver، tsx، Vite dev server و ابزار اسکن روی اینترنت منتشر نشوند.
 
-خروجی dist موجود، خروجی **اعتبارسنجی با دامنه و دادهٔ آزمایشی** است؛ آن را مستقیماً منتشر نکنید. برای release واقعی، VITE_SITE_URL را دامنهٔ HTTPS نهایی، METADATA_API_URL را API خواندنیِ مربوط به همان کاتالوگ و SEO_REQUIRE_COMPLETE=1 قرار دهید و دوباره build کنید. هیچ secret خصوصی با پیشوند VITE_ تنظیم نشود. `verify:deployment` عمداً frontend را با fixture مستقل بازسازی می‌کند؛ پس از آن برای انتشار، build مقصد لازم است.
+برای انتشار فروشگاه، خروجی مرورگر و SSR را بسازید و متغیرهای زمان اجرای سرویس را طبق راهنمای SEO تنظیم کنید. `verify:deployment` مسیرهای سایت و نقشهٔ سایت را با API محلی و دادهٔ آزمایشی بررسی می‌کند. هیچ secret خصوصی با پیشوند VITE_ تنظیم نشود. [راهنمای انتشار و ایندکس](../seo-launch.md)
 
 ## نقش‌های PostgreSQL
 

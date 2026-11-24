@@ -1,52 +1,32 @@
 import { DeliveryImage } from '@/components/DeliveryImage';
 import { Link } from 'wouter';
-import { useEffect } from 'react';
-import { ArrowRight, Clock, Loader2 } from 'lucide-react';
-import { fetchArticleBySlug } from '@/lib/api';
+import { ArrowRight, Clock } from 'lucide-react';
+import type { Article } from '@/lib/types';
+import { GUIDE_ARTICLES } from '@/lib/guide-articles';
+import { PageBreadcrumbs } from '@/components/PageBreadcrumbs';
 import { toFaDigits } from '@/lib/site';
-import { useAsyncData } from '@/lib/hooks-extra';
 import { ArabesqueDivider } from '@/components/Brand';
-import { articleBlocks } from '@/lib/article-blocks';
+import { articleBlocks, type ArticleBlock } from '@/lib/article-blocks';
+import { usePublicPage } from '@/lib/page-context';
+import { representativeProducts } from '@/lib/representative-products';
+import { pagePath, productPath } from '@/lib/routes';
 
-interface ArticlePageProps {
-  slug: string;
-}
-
-export function ArticlePage({ slug }: ArticlePageProps) {
-  const { data: article, loading, error } = useAsyncData(
-    () => fetchArticleBySlug(slug),
-    [slug]
-  );
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-  }, [slug]);
-
-  if (loading) {
-    return (
-      <main className="flex min-h-[70vh] items-center justify-center pt-32">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" strokeWidth={1.5} />
-      </main>
-    );
-  }
-
-  if (error || !article) {
-    return (
-      <main className="pt-32">
-        <div className="container-luxe py-20 text-center">
-          <h1 className="text-xl font-bold text-cream-300">{error ? 'دریافت مقاله انجام نشد' : 'مقاله یافت نشد'}</h1>
-          <Link href="/journal" className="btn-gold mt-6">
-            بازگشت به مجله
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  const blocks = articleBlocks(article.content);
+export function ArticlePage({ article }: { article: Article }) {
+  const editorial = GUIDE_ARTICLES.find(guide => guide.slug === article.slug && guide.id === article.id);
+  const { data } = usePublicPage();
+  const blocks: (ArticleBlock & { source?: { url: string; label: string } })[] = editorial
+    ? editorial.sections.flatMap(({ heading, text, source }) => [
+        ...(heading ? [{ type: 'heading' as const, level: 2 as const, text: heading }] : []),
+        { type: 'paragraph' as const, text, source },
+      ])
+    : articleBlocks(article.content);
+  const related = editorial
+    ? representativeProducts(data.products ?? []).filter(product => editorial.relatedCategories.includes(product.category))
+    : [];
 
   return (
     <main className="pt-32">
+      <div className="container-luxe"><PageBreadcrumbs /></div>
       <article>
         {/* Hero */}
         <div className="on-dark relative flex min-h-[380px] items-end overflow-hidden sm:min-h-[440px]">
@@ -62,7 +42,7 @@ export function ArticlePage({ slug }: ArticlePageProps) {
           <div className="relative w-full pt-16">
             <div className="container-luxe pb-10">
               <span className="chip backdrop-blur-sm">{article.category}</span>
-              <h1 className="mt-4 max-w-3xl font-display text-3xl font-bold leading-tight text-cream-50 text-balance sm:text-4xl lg:text-5xl">
+              <h1 className="mt-4 max-w-3xl font-display text-3xl font-bold text-cream-50 text-balance sm:text-4xl lg:text-5xl">
                 {article.title}
               </h1>
               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-cream-300">
@@ -79,11 +59,11 @@ export function ArticlePage({ slug }: ArticlePageProps) {
         {/* Body */}
         <div className="container-luxe py-16">
           <div className="mx-auto max-w-3xl">
-            <Link href="/journal"
+            <Link href={editorial ? "/guide" : "/journal"}
               className="mb-8 flex min-h-11 items-center gap-2 text-sm text-accent transition-colors hover:text-accent"
             >
               <ArrowRight className="h-4 w-4" strokeWidth={2} />
-              بازگشت به مجله دلگشا
+              {editorial ? "بازگشت به راهنمای انتخاب زعفران" : "بازگشت به مجله دلگشا"}
             </Link>
 
             <ArabesqueDivider className="mb-10" />
@@ -104,18 +84,31 @@ export function ArticlePage({ slug }: ArticlePageProps) {
                 return (
                   <p key={i} className="text-base leading-9 text-cream-200 text-pretty">
                     {block.text}
+                    {block.source && (
+                      <> <a className="text-sm text-accent underline underline-offset-4" href={block.source.url}>{block.source.label}</a></>
+                    )}
                   </p>
                 );
               })}
             </div>
 
+            {related.length > 0 && (
+              <section className="mt-10" aria-labelledby="related-guide-products">
+                <h2 id="related-guide-products" className="font-display text-xl font-bold text-cream-50">بسته‌های مرتبط زعفران ورسا</h2>
+                <ul className="mt-2">
+                  {related.map(product => <li key={product.id}>
+                    <Link href={productPath(product.slug)} className="inline-flex min-h-11 items-center text-sm text-accent underline underline-offset-4">{product.name}</Link>
+                  </li>)}
+                </ul>
+              </section>
+            )}
+            {editorial?.slug === "store-saffron" && (
+              <Link href={pagePath("contact")} className="mt-4 inline-flex min-h-11 items-center text-sm text-accent underline underline-offset-4">پیگیری بستهٔ آسیب‌دیده</Link>
+            )}
             <ArabesqueDivider className="my-12" />
 
             <div className="rounded-2xl border border-gold-500/20 bg-gradient-to-b from-gold-500/[0.06] to-transparent p-6 text-center">
-              <p className="font-display text-lg text-accent">عطر کویر را چشیده‌اید؟</p>
-              <p className="mt-2 text-sm text-cream-300">
-                زعفران ورسا را از فروشگاه ما سفارش دهید و تفاوت را احساس کنید.
-              </p>
+              <Link className="btn-gold" href="/shop">مقایسه وزن و قیمت بسته‌های زعفران</Link>
             </div>
           </div>
         </div>

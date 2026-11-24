@@ -1,8 +1,10 @@
-import { pagePath } from '@/lib/routes';
-import { shopCategoryHref } from '@/lib/shop-filter';
+import { categoryPath, pagePath } from '@/lib/routes';
+import { usePublicPage } from '@/lib/page-context';
+import { useStoreContent } from '@/lib/store-content';
 import { Link } from 'wouter';
 import { SITE } from '@/lib/site';
 import { toFaDigits } from '@/lib/site';
+import { VARSA } from '@/lib/brand-identity';
 import { VarsaLogo, ArabesqueDivider } from './Brand';
 import { ContactDetails } from './ContactDetails';
 import { SocialLinks } from './SocialLinks';
@@ -19,21 +21,21 @@ const COLS = [
       { href: pagePath('journal'), label: 'مجله دلگشا' },
       { href: pagePath('about'), label: 'داستان ورسا' },
       { href: pagePath('contact'), label: 'تماس و ارسال' },
-    ],
-  },
-  {
-    title: 'دسته‌بندی‌ها',
-    links: [
-      { href: shopCategoryHref('سوپر نگین'), label: 'زعفران سوپر نگین' },
-      { href: shopCategoryHref('نگین'), label: 'زعفران نگین' },
-      { href: shopCategoryHref('شبه نگین'), label: 'زعفران شبه نگین' },
-      { href: shopCategoryHref('پوشال'), label: 'زعفران پوشال' },
+      { href: '/account?view=orders&track=1', label: 'پیگیری سفارش' },
     ],
   },
 ];
 
 export function Footer() {
   const [enamadUnavailable, setEnamadUnavailable] = useState(false);
+  const { data } = usePublicPage();
+  const store = useStoreContent();
+  const categories = store?.categories ?? [...new Set(data.products?.map(product => product.category))];
+  const links = categories.flatMap(category => {
+    const href = categoryPath(category);
+    return href ? [{ href, label: category === "هدیه" ? "بسته‌های هدیه زعفران" : `زعفران ${category}` }] : [];
+  });
+  const columns = links.length ? [...COLS, { title: "دسته‌بندی‌ها", links }] : COLS;
   return (
     <footer className="site-footer on-dark relative overflow-hidden border-t border-gold-500/15 bg-ink-950">
       <div className="absolute inset-0 bg-grid-gold opacity-30" />
@@ -55,14 +57,14 @@ export function Footer() {
               <VarsaLogo tone="gold" aria-hidden="true" className="h-24 w-40" />
             </Link>
             <p className="mt-5 max-w-xs text-sm leading-7 text-cream-300">
-              ورسا؛ برای سفره‌های ایرانی و هدیه‌های خوش‌عطر.
+              {VARSA.name} <bdi lang="en">({VARSA.englishName})</bdi>.
               محصولات را با توجه به دسته‌بندی، وزن و قیمت هر بسته انتخاب کنید.
             </p>
             <SocialLinks compact />
           </div>
 
           {/* Nav columns */}
-          {COLS.map((col) => (
+          {columns.map((col) => (
             <div key={col.title}>
               <h2 className="mb-4 text-sm font-semibold tracking-wide text-accent">
                 {col.title}
@@ -92,11 +94,13 @@ export function Footer() {
                 referrerPolicy="origin"
                 target="_blank"
                 rel="noopener"
-                href="https://trustseal.enamad.ir/?id=8724364&Code=p3tSvyuJjKosMQrfxrQThMH1UhWTN05V"
+                href={VARSA.enamadProfile}
                 aria-label="مشاهده شناسنامهٔ اینماد ورسا (در پنجرهٔ جدید)"
                 className="inline-flex min-h-24 min-w-32 items-center justify-center rounded-xl bg-white p-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-400"
               >
                 <img
+                  loading="lazy"
+                  decoding="async"
                   referrerPolicy="origin"
                   src="https://trustseal.enamad.ir/logo.aspx?id=8724364&Code=p3tSvyuJjKosMQrfxrQThMH1UhWTN05V"
                   alt=""
@@ -116,7 +120,6 @@ export function Footer() {
 
         <div className="flex flex-col items-center justify-between gap-3 text-center text-xs text-cream-400 sm:flex-row sm:text-right">
           <p>© {toFaDigits(new Date().getFullYear())} ورسا — تمام حقوق محفوظ است.</p>
-          <p className="text-cream-500">طراحی و ساخت با عشق به زعفرانِ اصیلِ ایران</p>
           <details className="text-sm leading-8">
             <summary className="cursor-pointer min-h-11">منابع تصاویر</summary>
             <div className="flex flex-col gap-2 py-3">

@@ -691,3 +691,51 @@ test("a terminated worker process is recovered by a new independent worker", asy
     await exited;
   }
 });
+
+test("tracking migration preserves legacy ownership and known shipment data on repeat", async () => {
+  const oldDate = new Date("2025-05-07T08:09:10.123Z");
+  const source = { ...await intent(), phone: "09129990021" };
+  const { couponCode: _code, customerId: _owner, ...values } = source;
+  const [legacy, formatted, invalid] = await db.insert(ordersTable).values([
+    { ...values, createdAt: oldDate, status: "delivered", phone: "۰۰۹۸۹۱۲ ۹۹۹-۰۰۲۱" },
+    { ...values, orderNumber: "LEGACY-SECOND", idempotencyKey: randomUUID(), status: "shipped" },
+    { ...values, orderNumber: "LEGACY-INVALID", idempotencyKey: randomUUID(), phone: "invalid" },
+  ]).returning();
+  await pool.query(`
+    INSERT INTO order_details(order_id,meta,address_snapshot,fulfillment_status)
+    VALUES($1,$2,$3,'delivered'),($4,$5,$3,'shipped')
+  `, [
+    legacy.id, { trackingCode: "000031", deliveredAt: "2025-05-10T12:00:00.000Z" },
+    { address: values.address }, formatted.id, { shippedAt: "2025-99-99T11:12:13Z" },
+  ]);
+  const owner = randomUUID();
+  await pool.query("INSERT INTO customers(id,phone,profile) VALUES($1,$2,'{}')", [owner, source.phone]);
+  await pool.query("INSERT INTO customer_order_links(order_id,customer_id) VALUES($1,$2)", [legacy.id, owner]);
+  const migration = await readFile(
+    new URL("../../../lib/db/migrations/0012_customer_order_tracking.sql", import.meta.url), "utf8",
+  );
+  await pool.query(migration);
+  await pool.query(migration);
+  const result = await pool.query(`
+    SELECT o.id,o.phone,o.total,o.address,c.phone AS normalized,c.id AS contact,l.customer_id,
+      s.tracking_code,s.shipped_at,s.delivered_at,
+      (SELECT count(*)::int FROM order_events e WHERE e.order_id=o.id) AS event_count
+    FROM orders o LEFT JOIN customer_contacts c ON o.customer_contact_id=c.id
+    LEFT JOIN shipments s ON s.order_id=o.id LEFT JOIN customer_order_links l ON l.order_id=o.id
+    ORDER BY o.id
+  `);
+  const [first, second, third] = result.rows;
+  assert.deepEqual(result.rows.map((row) => row.id), [legacy.id, formatted.id, invalid.id]);
+  assert.equal(first.contact, second.contact);
+  assert.equal(first.normalized, source.phone);
+  assert.equal(first.phone, legacy.phone);
+  assert.equal(first.customer_id, owner);
+  assert.equal(first.address, values.address);
+  assert.equal(first.total, values.total);
+  assert.equal(first.tracking_code, "000031");
+  assert.equal(first.delivered_at.toISOString(), "2025-05-10T12:00:00.000Z");
+  assert.equal(first.shipped_at, null);
+  assert.equal(second.shipped_at, null);
+  assert.equal(third.contact, null);
+  assert.deepEqual(result.rows.map((row) => row.event_count), [1, 1, 1]);
+});

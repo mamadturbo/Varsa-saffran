@@ -1,5 +1,5 @@
-export type { ProductCategory, CatalogProduct as Product } from '@workspace/catalog';
-import type { CatalogProduct as Product } from '@workspace/catalog';
+export type { ProductCategory, StorefrontProduct as Product } from '@workspace/catalog';
+import type { StorefrontProduct as Product } from '@workspace/catalog';
 
 export interface Article {
   id: string;
@@ -12,6 +12,7 @@ export interface Article {
   category: string;
   read_time: number;
   created_at: string;
+  citationUrls?: readonly string[];
 }
 
 export interface ContactMessage {

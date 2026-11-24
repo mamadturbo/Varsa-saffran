@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { buildPageMeta, metadataTags, renderMetadata, replaceMetadata } from '../../varsa-shop/src/lib/page-meta';
 import { buildProductJsonLd, serializeJsonLd } from '../../varsa-shop/src/lib/product-jsonld';
-import { resolvePageMeta } from '../../varsa-shop/src/lib/meta-data';
 import { legacyCatalogFixture } from './catalog-fixture';
 const product = legacyCatalogFixture()[0];
 const config = { siteUrl: 'https://shop.example.test', basePath: '/store/' };
@@ -15,7 +14,9 @@ test('product schema uses canonical identity, exact catalog fields and rial pric
   const data = jsonFromHtml(renderMetadata(meta));
   assert.equal(data['@context'], 'https://schema.org'); assert.equal(data['@type'], 'Product');
   assert.equal(data.name, product.name); assert.equal(data.sku, product.id);
-  assert.equal(data.category, product.category); assert.equal(data.brand.name, 'ورسا');
+  assert.equal(data.category, product.category); assert.equal(data.brand.name, 'زعفران ورسا');
+  assert.deepEqual(data.brand.alternateName, ['VARSA Saffron', 'ورسا']);
+  assert.equal(data.offers.seller['@id'], 'https://shop.example.test/store/#organization');
   assert.equal(data.url, `https://shop.example.test/store/products/${product.slug}`);
   assert.equal(data['@id'], `${data.url}#product`); assert.equal(data.offers.url, data.url);
   assert.equal(data.offers.priceCurrency, 'IRR'); assert.equal(data.offers.price, '4490000');
@@ -49,7 +50,7 @@ test('JSON-LD serialization prevents script breakout while preserving original p
   const script = metadataTags(meta).find(tag => tag.tag === 'script')!;
   assert(!script.text!.includes('<')); assert(!script.text!.includes('&'));
   assert.equal(JSON.parse(script.text!).name, name);
-  assert.equal((renderMetadata(meta).match(/<script /g) ?? []).length, 1);
+  assert.equal((renderMetadata(meta).match(/id="varsa-product-jsonld"/g) ?? []).length, 1);
   assert.equal(JSON.parse(serializeJsonLd(meta.structuredData!)).name, name);
 });
 test('replacing route metadata removes the previous product schema', () => {
@@ -59,13 +60,9 @@ test('replacing route metadata removes the previous product schema', () => {
   const contact = replaceMetadata(productHtml, buildPageMeta('/contact', config));
   assert(!contact.includes('application/ld+json')); assert(!contact.includes(product.slug));
 });
-test('live resolver picks current price and never falls back to old schema after deletion/outage', async () => {
-  let rows = [product]; let down = false;
-  const source = { ...config, url: 'https://catalog.example.test', anonKey: 'public-test', fetch: async () => down ? new Response('', { status: 503 }) : new Response(JSON.stringify(rows), { status: 200 }) };
-  const route = `/products/${product.slug}`;
-  assert.equal((await resolvePageMeta(route, source)).structuredData?.offers.price, '4490000');
-  rows = [{ ...product, price: 555000 }];
-  assert.equal((await resolvePageMeta(route, source)).structuredData?.offers.price, '5550000');
-  rows = []; assert.equal((await resolvePageMeta(route, source)).structuredData, undefined);
-  down = true; assert.equal((await resolvePageMeta(route, source)).structuredData, undefined);
+test('known stock uses the same availability as the purchase button', () => {
+  const page = { description: 'test' };
+  assert.equal(buildProductJsonLd({ ...product, stock: 0 }, page)?.offers.availability, 'https://schema.org/OutOfStock');
+  assert.equal(buildProductJsonLd({ ...product, stock: 2 }, page)?.offers.availability, 'https://schema.org/InStock');
+  assert.equal(buildProductJsonLd({ ...product, stock: null }, page)?.offers.availability, undefined);
 });

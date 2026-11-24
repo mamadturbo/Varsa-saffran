@@ -2,7 +2,6 @@ import { VarsaMark, VarsaLogo } from '@/components/Brand';
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -53,6 +52,7 @@ import {
 import {
   readManagement,
   readOrders,
+  readAdminOrder,
   saveManagement,
   saveFulfillment,
   importArticles,
@@ -62,6 +62,8 @@ import {
 import { formatPrice, toFaDigits } from "@/lib/site";
 import { StoreDialog, StoreDialogTitle } from "@/components/StoreDialog";
 import "./admin.css";
+import { OrderTrackingHistory } from "@/components/OrderTrackingHistory";
+import { AdminCustomers } from "./AdminCustomers";
 import { AdminCustomerService } from "./AdminCustomerService";
 
 const sections = [
@@ -523,8 +525,9 @@ function OrderDetail({
 }) {
   const [status, setStatus] = useState(order.status);
   const [tracking, setTracking] = useState(
-    order.management?.trackingCode ?? "",
+    order.shipment?.trackingCode ?? order.management?.trackingCode ?? "",
   );
+  const [carrier, setCarrier] = useState(order.shipment?.carrier ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   return (
@@ -604,6 +607,7 @@ function OrderDetail({
         </div>
         <p className="adm-hint">این برگه رسید پرداخت نیست.</p>
       </div>
+      <div className="adm-tracking-history"><OrderTrackingHistory orderId={order.id} admin /></div>
       <form
         className="adm-fulfillment"
         onSubmit={async (e) => {
@@ -612,7 +616,7 @@ function OrderDetail({
           setBusy(true);
           setError("");
           try {
-            await saveFulfillment(order.id, status, tracking);
+            await saveFulfillment(order.id, status, tracking, carrier);
             await onSaved();
             onClose();
           } catch (err) {
@@ -635,9 +639,13 @@ function OrderDetail({
             ))}
           </select>
         </Field>
+        <Field label="شرکت حمل">
+          <input value={carrier} maxLength={100} disabled={busy} onChange={(e) => setCarrier(e.target.value)} />
+        </Field>
         <Field label="کد رهگیری مرسوله">
           <input
             value={tracking}
+            dir="ltr"
             maxLength={100}
             onChange={(e) => setTracking(e.target.value)}
             disabled={busy}
@@ -696,6 +704,7 @@ export function AdminPage() {
     revision: number;
   } | null>(null);
   const [selected, setSelected] = useState<AdminOrder | null>(null);
+  const [contactsRevision, setContactsRevision] = useState(0);
   const customer = new URLSearchParams(searchParams).get("customer");
   const logout = useCallback(async () => {
     try { await signOutAdmin(); } catch { setError('خروج انجام نشد؛ دوباره تلاش کنید.'); return; }
@@ -706,6 +715,10 @@ export function AdminPage() {
     setSelected(null);
   }, []);
   const load = useCallback(async () => {
+    if (section === "customers") {
+      setContactsRevision((n) => n + 1);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -719,7 +732,7 @@ export function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [logout]);
+  }, [logout, section]);
   useEffect(() => {
     if (authenticated) void load();
   }, [authenticated, load]);
@@ -735,31 +748,6 @@ export function AdminPage() {
     desktop.addEventListener('change', resize);
     return () => desktop.removeEventListener('change', resize);
   }, []);
-  const customers = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        phone: string;
-        name: string;
-        count: number;
-        total: number;
-        last: string;
-      }
-    >();
-    for (const o of orders) {
-      const c = map.get(o.phone) ?? {
-        phone: o.phone,
-        name: o.customerName,
-        count: 0,
-        total: 0,
-        last: o.createdAt,
-      };
-      c.count++;
-      if (o.status !== "cancelled") c.total += o.total;
-      map.set(o.phone, c);
-    }
-    return [...map.values()];
-  }, [orders]);
   if(checkingSession)return <main className="min-h-screen flex items-center justify-center" role="status">در حال بررسی نشست…</main>;
   if (!authenticated)
     return (
@@ -910,9 +898,7 @@ export function AdminPage() {
       : section === "products"
         ? (state?.products.filter((p) => match(p.name + " " + p.category))
             .length ?? 0)
-        : section === "customers"
-          ? customers.filter((c) => match(c.name + " " + c.phone)).length
-          : section === "coupons"
+        : section === "coupons"
             ? (state?.coupons.filter((c) => match(c.code)).length ?? 0)
             : section === "articles"
               ? (state?.articles?.filter((a) => match(a.title)).length ?? 0)
@@ -1057,7 +1043,11 @@ export function AdminPage() {
               </button>
             </div>
           )}
-          {!state ? (
+          {section === "customers" ? (
+            <AdminCustomers revision={contactsRevision} onOrder={async (id) => {
+              setSelected(await readAdminOrder(id));
+            }} />
+          ) : !state ? (
             <div className="adm-panel">
               <Empty
                 title={
@@ -1110,7 +1100,7 @@ export function AdminPage() {
                     </div>
                     <div>
                       <span>مشتری‌های ورسا</span>
-                      <strong>{toFaDigits(customers.length)}</strong>
+                      <strong>{toFaDigits(new Set(orders.flatMap((o) => o.customerContactId ? [o.customerContactId] : [])).size)}</strong>
                       <p>بر اساس شماره موبایل سفارش‌ها</p>
                     </div>
                   </section>
@@ -1354,58 +1344,6 @@ export function AdminPage() {
                               ))}
                           </tbody>
                         </table>
-                      </div>
-                    )}
-                    {section === "customers" && (
-                      <div className="adm-table-wrap" role="region" aria-label="جدول اطلاعات مدیریت" tabIndex={0}>
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>مشتری</th>
-                              <th>شماره موبایل</th>
-                              <th>تعداد سفارش</th>
-                              <th>مجموع مبلغ سفارش‌ها</th>
-                              <th>آخرین سفارش</th>
-                              <th>عملیات</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {customers
-                              .filter((c) => match(c.name + " " + c.phone))
-                              .slice((page - 1) * 20, page * 20)
-                              .map((c) => (
-                                <tr key={c.phone}>
-                                  <td>
-                                    <strong>{c.name}</strong>
-                                  </td>
-                                  <td data-label="شماره موبایل" dir="ltr">
-                                    {c.phone}
-                                  </td>
-                                  <td data-label="تعداد سفارش">
-                                    {toFaDigits(c.count)}
-                                  </td>
-                                  <td data-label="مجموع مبلغ">
-                                    {formatPrice(c.total)}
-                                  </td>
-                                  <td data-label="آخرین سفارش">
-                                    {date(c.last)}
-                                  </td>
-                                  <td>
-                                    <Link
-                                      href={`/admin?section=orders&customer=${encodeURIComponent(c.phone)}`}
-                                      className="adm-edit-button"
-                                    >
-                                      سابقه خرید
-                                      <ChevronLeft size={15} />
-                                    </Link>
-                                  </td>
-                                </tr>
-                              ))}
-                          </tbody>
-                        </table>
-                        {customers.length === 0 && (
-                          <Empty title="هنوز مشتری ثبت نشده است" />
-                        )}
                       </div>
                     )}
                     {section === "coupons" &&

@@ -1,15 +1,17 @@
 import { pagePath, articlePath } from '@/lib/routes';
 import { Link } from 'wouter';
 import { ArrowLeft, Clock, Loader2 } from 'lucide-react';
-import { fetchArticles } from '@/lib/api';
+import { usePublicPage } from '@/lib/page-context';
+import { GUIDE_ARTICLES } from '@/lib/guide-articles';
 import { toFaDigits } from '@/lib/site';
 import { SectionHeading } from '@/components/SectionHeading';
-import { useAsyncData } from '@/lib/hooks-extra';
 import { DeliveryImage } from '@/components/DeliveryImage';
 
 
 export function JournalPreview() {
-  const { data: articles, loading, error } = useAsyncData(fetchArticles, []);
+  const { data, loading } = usePublicPage();
+  const articles = data.articles;
+  const error = articles === null;
 
   const featured = articles?.[0];
   const rest = articles?.slice(1, 4) ?? [];
@@ -105,6 +107,11 @@ export function JournalPreview() {
           </div>
         )}
 
+        <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2">
+          {GUIDE_ARTICLES.map(article => <li key={article.slug}>
+            <Link href={article.path} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">{article.title}</Link>
+          </li>)}
+        </ul>
         <div className="mt-12 text-center">
           <Link href={pagePath('journal')} className="btn-gold">
             ورود به مجله دلگشا

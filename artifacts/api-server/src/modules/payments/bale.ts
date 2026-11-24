@@ -8,35 +8,25 @@ import {
 import type { Database } from "../catalog/repository";
 import { digest, s3Storage } from "../files/storage";
 import { StoreError } from "../../lib/management-store";
+import { baleCall, type BaleCall } from "./bale-api";
 import { cardTransferConfig } from "./config";
 import { reviewReceipt } from "./service";
 
-export type BaleCall = <T = unknown>(
-  method: string,
-  payload: Record<string, unknown> | FormData,
-) => Promise<T>;
-export const baleCall: BaleCall = async <T>(
-  method: string,
-  payload: Record<string, unknown> | FormData,
-) => {
-  const token = process.env.BALE_BOT_TOKEN;
-  if (!token) throw new Error("Bale not configured");
-  // Never include provider URLs/errors in logs: the URL contains the bot token.
-  try {
-    const multipart = payload instanceof FormData;
-    const response = await fetch(`https://tapi.bale.ai/bot${token}/${method}`, {
-      method: "POST",
-      ...(multipart ? {} : { headers: { "Content-Type": "application/json" } }),
-      body: multipart ? payload : JSON.stringify(payload),
-      signal: AbortSignal.timeout(10000),
-    });
-    const body = (await response.json()) as { ok: boolean; result: T };
-    if (!response.ok || !body.ok) throw new Error("Bale rejected request");
-    return body.result;
-  } catch {
-    throw new Error("bale_request_failed");
-  }
-};
+export { baleCall, type BaleCall } from "./bale-api";
+
+export async function sendApprovalToBale(db: Database, orderId: number) {
+  if (!cardTransferConfig().enabled) throw new Error("Bale disabled");
+  const [order] = await db
+    .select({ orderNumber: ordersTable.orderNumber })
+    .from(ordersTable)
+    .where(eq(ordersTable.id, orderId));
+  if (!order) throw new Error("Approved order not found");
+  await baleCall("sendMessage", {
+    chat_id: process.env.BALE_ADMIN_CHAT_ID,
+    text: `✅ تأیید شد. پرداخت و سفارش ${order.orderNumber} تأیید شدند.`,
+  });
+}
+
 export async function sendReceiptToBale(
   db: Database,
   id: string,

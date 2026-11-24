@@ -36,7 +36,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null),
     [ready, setReady] = useState(false),
     [error, setError] = useState(""),
-    [guest, setGuest] = useState(readGuest),
+    [guest, setGuest] = useState<string[]>([]),
     [favoriteBusy, setFavoriteBusy] = useState(false);
   const lock = useRef(false);
   const refresh = async () => {
@@ -50,6 +50,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     }
   };
   useEffect(() => {
+    setGuest(readGuest());
     void refresh();
   }, []);
   const acceptCustomer = async (c: Customer) => {

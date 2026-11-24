@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './fonts.css';
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* Supplied Varsa artwork: preserve its proportions and original colors. */
@@ -111,6 +112,8 @@
 
 @layer base {
   :root {
+    --display-line-height: 2.2;
+
     /* Muted sand gold and earthy text complement the saffron brand. */
     --brand-primary: 181 154 103;
     --brand-secondary: 0 0 0;
@@ -215,6 +218,7 @@
 
   body {
     @apply bg-ink-900 font-sans text-cream-100 antialiased;
+    text-align: start;
     font-feature-settings: 'ss01';
     transition: background-color 0.5s ease, color 0.5s ease;
   }
@@ -253,6 +257,11 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gold-600/60;
   }
+}
+
+/* Nastaliq glyphs extend beyond the default line box used by size utilities. */
+:where(h1, h2, h3, h4, h5, h6).font-display {
+  line-height: var(--display-line-height);
 }
 
 @layer components {
@@ -422,14 +431,14 @@
 }
 
 @layer utilities {
-  .reveal {
+  .reveal.reveal-pending {
     opacity: 0;
     transform: translateY(34px);
     transition: opacity 1s cubic-bezier(0.22, 1, 0.36, 1),
       transform 1s cubic-bezier(0.22, 1, 0.36, 1);
     will-change: opacity, transform;
   }
-  .reveal.is-visible {
+  .reveal.reveal-pending.is-visible {
     opacity: 1;
     transform: translateY(0);
   }
@@ -468,16 +477,7 @@
   input, textarea, select { scroll-margin-block: 6rem 2rem; }
 }
 
-.store-modal {
-  --dialog-height: min(88dvh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
-  max-height: var(--dialog-height);
-}
-.store-modal-scroll {
-  max-height: var(--dialog-height);
-  overscroll-behavior: contain;
-  scroll-padding-block: 4.5rem 1.5rem;
-}
-.cart-drawer, .mobile-menu {
+.mobile-menu {
   padding-top: env(safe-area-inset-top);
   height: 100dvh;
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
@@ -494,7 +494,6 @@
     padding-inline: 1.25rem;
     text-align: center;
   }
-  .hero h1 { line-height: 1.65; }
 }
 @media (pointer: coarse) {
   button:active, a:active { filter: brightness(.92); }
@@ -515,7 +514,7 @@
 .footer-grid > * { min-width: 0; }
 .footer-brand, .footer-contact { grid-column: 1 / -1; }
 .footer-grid a { overflow-wrap: anywhere; }
-.footer-mantra { line-height: 2.1; }
+.footer-mantra { line-height: var(--display-line-height); }
 @media (min-width: 640px) {
   .footer-grid { gap: 36px 32px; }
   .footer-brand, .footer-contact { grid-column: auto; }
@@ -533,7 +532,8 @@
 /* Keep Persian copy and carousel controls comfortably separated on phones. */
 @media (max-width: 639px) {
   .home-page > section:not(.hero) { padding-block: 3.5rem; }
-  .home-page h2 { line-height: 1.9; text-wrap: balance; }
+  .home-page h2 { text-wrap: balance; }
+  .home-page h2:not(.font-display) { line-height: 1.9; }
   .home-page h2 + p, .home-page h3 + p { margin-top: 1rem; }
   .home-page section p { line-height: 2.15; }
   .home-page .hero {

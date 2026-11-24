@@ -1287,3 +1287,43 @@
   .varsa-admin input:not([type="checkbox"]):not([type="file"]),
   .varsa-admin textarea, .varsa-admin select { font-size: 16px; }
 }
+
+.adm-contacts { display: grid; gap: 1rem; }
+.adm-contacts .adm-toolbar { margin-bottom: 0; }
+.adm-contacts { padding-block-end: 1rem; }
+.adm-contacts > :not(.adm-panel-heading):not(.adm-toolbar) { margin-inline: 1rem; }
+.adm-contact-list { display: grid; gap: .65rem; margin: 0; padding: 0; list-style: none; }
+.adm-contact-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, .8fr);
+  gap: .5rem 1rem;
+  inline-size: 100%;
+  min-block-size: 3.5rem;
+  text-align: start;
+  border: 1px solid currentColor;
+  border-color: color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: .6rem;
+  padding: .7rem .85rem;
+  overflow-wrap: anywhere;
+}
+.adm-contact-card:hover { background: color-mix(in srgb, currentColor 6%, transparent); }
+.adm-contact-card span { display: grid; gap: .15rem; align-content: start; }
+.adm-contact-card bdi { justify-self: start; }
+.adm-contact-next { font-weight: 600; }
+.adm-contact-due, .adm-contact-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.adm-contact-due { min-block-size: 2.75rem; }
+.adm-contact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+.adm-contact-grid > section, .adm-contact-form { min-inline-size: 0; display: grid; gap: .65rem; align-content: start; }
+.adm-contact-entry { overflow-wrap: anywhere; padding: .65rem 0; border-block-end: 1px solid color-mix(in srgb, currentColor 20%, transparent); }
+.adm-contact-order { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem; }
+.adm-contact-order p, .adm-contact-entry p { margin: .15rem 0; }
+.adm-contact-actions .adm-field { flex: 1 1 14rem; min-inline-size: 0; }
+.adm-contact-actions .adm-button, .adm-contact-grid .adm-button { min-block-size: 2.75rem; }
+.adm-followup-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.adm-tracking-history { padding-inline: 1rem; }
+@media (max-width: 600px) {
+  .adm-contact-card, .adm-contact-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media print {
+  .adm-tracking-history { display: none; }
+}

@@ -1,5 +1,5 @@
 import { customFetch } from "@workspace/api-client-react";
-import { parseCatalogProduct } from "@workspace/catalog";
+import { publicProducts } from "./public-page";
 import { normalizeIranMobile, MOBILE_PHONE_ERROR } from "@workspace/validation";
 import type { Article, ContactMessage, Product } from "./types";
 
@@ -7,12 +7,7 @@ export async function fetchProducts(): Promise<Product[]> {
   const rows = await customFetch<Product[]>("/api/store/products", {
     signal: AbortSignal.timeout(20000),
   });
-  return rows.map(parseCatalogProduct);
-}
-
-export async function fetchFeaturedProducts(): Promise<Product[]> {
-  const products = await fetchProducts();
-  return products.filter((product) => product.is_featured);
+  return publicProducts(rows);
 }
 
 export async function fetchArticles(): Promise<Article[]> {

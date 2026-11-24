@@ -1,7 +1,8 @@
+import { migrateTest } from './commerce-fixture';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import { once } from 'node:events';
+import { readFile } from 'node:fs/promises';
 import { after, before, beforeEach, test } from 'node:test';
 import express from 'express';
 import { PGlite } from '@electric-sql/pglite';
@@ -34,21 +35,14 @@ app.post('/drop-after-commit', createOrderHandler(async (input) => {
 const migration = await readFile(new URL('../../../lib/db/migrations/0001_order_idempotency.sql', import.meta.url), 'utf8');
 
 before(async () => {
-  await postgres.exec(`CREATE TABLE orders (
-    id serial PRIMARY KEY, order_number varchar(32) NOT NULL UNIQUE,
-    customer_name varchar(120) NOT NULL, phone varchar(32) NOT NULL,
-    address text NOT NULL, items jsonb NOT NULL, total integer NOT NULL,
-    status varchar(20) NOT NULL DEFAULT 'pending',
-    created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
-  );`);
-  await postgres.exec(migration);
+  await migrateTest(postgres);
   server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const address = server.address(); assert(address && typeof address !== 'string');
   baseUrl = `http://127.0.0.1:${address.port}`;
 });
 beforeEach(async () => {
-  await postgres.exec('TRUNCATE orders RESTART IDENTITY');
+  await postgres.exec('TRUNCATE orders RESTART IDENTITY CASCADE');
   catalogDown = false; catalogReads = 0; catalog = legacyCatalogFixture();
 });
 after(async () => {

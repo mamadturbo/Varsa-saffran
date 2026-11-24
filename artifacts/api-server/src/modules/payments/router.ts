@@ -12,7 +12,7 @@ import { hasValidAdminToken } from "../../lib/admin-auth";
 import { StoreError } from "../../lib/management-store";
 import { securityLimit } from "../../lib/security-limit";
 import { cardTransferConfig } from "./config";
-import { latestReceipt, matchesOrderKey, submitReceipt } from "./service";
+import { acceptsReceipt, latestReceipt, matchesOrderKey, submitReceipt } from "./service";
 
 export function paymentRoutes(db: Database, customers: CustomerServices) {
   const router = Router(),
@@ -94,6 +94,7 @@ export function paymentRoutes(db: Database, customers: CustomerServices) {
           },
           paymentStatus: details?.paymentStatus ?? "unpaid",
           shippingConfigured: !!details?.meta.shippingConfigured,
+          canSubmitReceipt: acceptsReceipt(order.status, details),
           config: cardTransferConfig(),
           receipt: receipt
             ? {

@@ -1,10 +1,10 @@
 import { productPath } from '@/lib/routes';
-import { useSearch } from 'wouter/use-browser-location';
+import { useAssetOrigin, useRawSearch } from '@/lib/page-context';
 import { Link } from 'wouter';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import type { Product } from '@/lib/types';
-import { useCart } from '@/lib/cart';
-import { formatPrice, formatWeight, toFaDigits } from '@/lib/site';
+import { useBuyProduct } from '@/lib/cart';
+import { formatPrice, formatWeight } from '@/lib/site';
 import { isBrandArtworkUrl } from '@/lib/brand-artwork';
 import { UnitPrice } from './UnitPrice';
 import { rememberDialogTrigger } from '@/lib/dialog-focus';
@@ -19,9 +19,10 @@ interface ProductCardProps {
 
 export function ProductCard({ product, headingLevel = 3, imageSizes = '(min-width: 1280px) 276px, (min-width: 1024px) calc((100vw - 152px) / 3), (min-width: 640px) calc((100vw - 92px) / 2), calc(100vw - 32px)' }: ProductCardProps) {
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
-  const { add } = useCart();
-  const search = useSearch();
-  const illustrated = isBrandArtworkUrl(product.image_url, `${window.location.origin}${import.meta.env.BASE_URL}`);
+  const buy = useBuyProduct();
+  const search = useRawSearch();
+  const origin = useAssetOrigin();
+  const illustrated = isBrandArtworkUrl(product.image_url, `${origin}${import.meta.env.BASE_URL}`);
 
   return (
     <article className="card-luxe group flex h-full min-w-0 flex-col overflow-hidden">
@@ -43,26 +44,17 @@ export function ProductCard({ product, headingLevel = 3, imageSizes = '(min-widt
         <span className="absolute right-3 top-3 chip backdrop-blur-sm">
           {product.category}
         </span>
-        {product.crocin >= 260 && (
-          <span className="on-dark absolute left-3 top-3 flex items-center gap-1 rounded-full border border-gold-400/50 bg-ink-950/90 px-2.5 py-1 text-[10px] font-medium text-accent backdrop-blur-sm">
-            <Star className="h-3 w-3 fill-gold-400 text-accent" />
-            درجه‌ی S
-          </span>
-        )}
       </Link>
 
       {/* Body */}
       <div className="flex flex-1 flex-col p-5">
-        <Heading className="text-base font-semibold leading-7 text-cream-50">{product.name}</Heading>
+        <Heading className="text-base font-semibold leading-7 text-cream-50"><Link href={productPath(product.slug)}>{product.name}</Link></Heading>
         <p className="mt-2 line-clamp-2 text-sm leading-7 text-cream-300">
           {product.short_description}
         </p>
 
         {/* Specs */}
         <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-cream-400">
-          <span className="rounded-md border border-gold-500/15 bg-gold-500/5 px-2 py-1">
-            کروسین: {toFaDigits(product.crocin)}
-          </span>
           <span className="rounded-md border border-gold-500/15 bg-gold-500/5 px-2 py-1">
             وزن: {formatWeight(product.weight, product.weight_unit)}
           </span>
@@ -87,10 +79,10 @@ export function ProductCard({ product, headingLevel = 3, imageSizes = '(min-widt
             </Link>
             <button
               disabled={product.stock === 0 || product.active === false}
-              onClick={() => add(product)}
+              onClick={() => buy(product)}
               className="btn-solid min-h-11 !px-3 !py-2.5 !text-xs"
             >
-              {product.stock === 0 ? 'ناموجود' : 'افزودن'}
+              {product.stock === 0 || product.active === false ? 'ناموجود' : 'خرید'}
             </button>
           </div>
         </div>

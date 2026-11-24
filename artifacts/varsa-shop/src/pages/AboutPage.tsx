@@ -6,6 +6,7 @@ import { useReveal } from '@/lib/hooks';
 import { SectionHeading } from '@/components/SectionHeading';
 import { ArabesqueDivider } from '@/components/Brand';
 import { SaffronPhoto } from '@/components/SaffronPhoto';
+import { VARSA } from '@/lib/brand-identity';
 
 
 const STEPS = [
@@ -31,7 +32,7 @@ const STEPS = [
     icon: ShoppingBag,
     step: '۰۴',
     title: 'سبد را بررسی کنید',
-    text: 'تعداد و جمع کالاها را در سبد ببینید. پرداخت آنلاین هنوز فعال نیست و شرایط ارسال نهایی نشده است.',
+    text: 'تعداد و جمع کالاها را در سبد ببینید و روش پرداخت و هزینه ارسال را هنگام ثبت سفارش بررسی کنید.',
   },
 ];
 
@@ -45,8 +46,8 @@ export function AboutPage() {
         <div className="container-luxe text-center">
           <SectionHeading as="h1"
             eyebrow="داستان ورسا"
-            title={<>ورسا؛ <span className="gold-text">دلگشای سفره‌های اصیل</span></>}
-            subtitle="زعفران در آشپزی و مهمان‌نوازی ایرانی جای ویژه‌ای دارد. هویت ورسا از عطر زعفران، هنر و لحظه‌های کنار هم بودن الهام می‌گیرد."
+            title={<>{VARSA.name} <span className="gold-text"><bdi lang="en">{VARSA.englishName}</bdi></span></>}
+            subtitle={VARSA.description}
           />
         </div>
       </section>
@@ -60,10 +61,11 @@ export function AboutPage() {
             </div>
             <div className="reveal reveal-delay-1">
               <h2 className="font-display text-2xl font-bold text-cream-50">
-                ارادت به خاکِ ایران
+                فروشندهٔ زعفران ورسا
               </h2>
               <ArabesqueDivider className="my-5 justify-start" />
               <div className="space-y-4 text-base leading-8 text-cream-300 text-pretty">
+                <p>{VARSA.sellerDescription}</p>
                 <p>
                   ما به سفره ایرانی و خاطره‌هایی که دور آن شکل می‌گیرد علاقه داریم؛
                   از عطر برنج زعفرانی در خانه تا هدیه‌ای برای یک دیدار.
@@ -72,6 +74,9 @@ export function AboutPage() {
                   «دلگشا» بیان این نگاه در هویت ورساست. در فروشگاه می‌توانید
                   محصولات را با توجه به دسته‌بندی، وزن و قیمت هر بسته انتخاب کنید.
                 </p>
+                <a href={VARSA.enamadProfile} referrerPolicy="origin" className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">
+                  مشاهدهٔ شناسنامهٔ اینماد زعفران ورسا
+                </a>
               </div>
             </div>
           </div>
@@ -127,6 +132,7 @@ export function AboutPage() {
                 مشاهده‌ی محصولات
                 <ArrowLeft className="h-4 w-4" strokeWidth={2} />
               </Link>
+              <Link href={pagePath('contact')} className="mr-4 mt-8 inline-flex min-h-11 items-center text-accent underline">تماس با ورسا</Link>
             </div>
             <div className="reveal order-1 lg:order-2 relative">
               <SaffronPhoto photo={SAFFRON_PHOTOS.spoon} />

@@ -1,5 +1,7 @@
 import { importLegacyArticles } from "../content/service";
 import { fileService, encodeUpload } from "../files/storage";
+import { adminCustomerContacts } from "../customers/admin";
+import { readOrderTracking, shipmentView } from "../orders/tracking";
 import { randomUUID } from "node:crypto";
 import {
   Router,
@@ -11,12 +13,15 @@ import { desc, eq } from "drizzle-orm";
 import type { db } from "@workspace/db";
 import {
   ordersTable,
+  orderDetails,
+  shipments,
   ORDER_STATUSES,
   storeMediaTable,
   type OrderStatus,
 } from "@workspace/db/schema";
 import {
   parseCatalogProduct,
+  toStorefrontProduct,
   type ManagementState,
   type ManagedArticle,
   type Coupon,
@@ -30,7 +35,7 @@ import {
   contactProfile,
   MAX_ORDER_LINES,
 } from "@workspace/validation";
-import { hasValidAdminToken } from "../../lib/admin-auth";
+import { adminIdentity, hasValidAdminToken } from "../../lib/admin-auth";
 import {
   updateManagedOrder,
   type OrderChangeHook,
@@ -70,6 +75,22 @@ const url = (v: unknown, required = false) => {
   return s;
 };
 
+const adminOrderSelection = { order: ordersTable, details: orderDetails, shipment: shipments };
+function adminOrderView({ order, details, shipment }: {
+  order: typeof ordersTable.$inferSelect;
+  details: typeof orderDetails.$inferSelect | null;
+  shipment: typeof shipments.$inferSelect | null;
+}) {
+  const { idempotencyKey: _key, requestFingerprint: _fingerprint, ...safe } = order;
+  return {
+    ...safe,
+    id: String(order.id),
+    management: details?.meta ?? null,
+    paymentStatus: details?.paymentStatus ?? "unpaid",
+    shipment: shipmentView(shipment),
+  };
+}
+
 export function createManagementRouter(
   database: typeof db,
   store: ManagementStore,
@@ -107,6 +128,7 @@ export function createManagementRouter(
     }
     next();
   });
+  router.use(adminCustomerContacts(database));
   router.get(
     "/store/products",
     route(async (_req, res) => {
@@ -117,7 +139,8 @@ export function createManagementRouter(
             .filter((p) => p.active)
             .sort(
               (a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id),
-            ),
+            )
+            .map(toStorefrontProduct),
         );
     }),
   );
@@ -127,6 +150,7 @@ export function createManagementRouter(
       const s = await store.publicState();
       res.set("Cache-Control", "no-store").json({
         banners: s.banners.filter((b) => b.active),
+      categories: [...new Set(s.products.filter(p => p.active).map(p => p.category))],
         settings: s.settings,
         articles: s.articles?.filter((a) => a.published) ?? null,
         useLegacyArticles: s.legacyArticlesEnabled ?? s.articles === null,
@@ -413,22 +437,32 @@ export function createManagementRouter(
   router.get(
     "/admin/orders",
     route(async (_req, res) => {
-      const state = await store.read();
       const orders = await database
-        .select()
+        .select(adminOrderSelection)
         .from(ordersTable)
+        .leftJoin(orderDetails, eq(orderDetails.orderId, ordersTable.id))
+        .leftJoin(shipments, eq(shipments.orderId, ordersTable.id))
         .orderBy(desc(ordersTable.createdAt));
       res.set("Cache-Control", "no-store").json({
-        orders: orders.map(
-          ({ idempotencyKey: _k, requestFingerprint: _f, ...o }) => ({
-            ...o,
-            id: String(o.id),
-            management: state.orderMeta[String(o.id)] ?? null,
-          }),
-        ),
+        orders: orders.map(adminOrderView),
       });
     }),
   );
+  router.get("/admin/orders/:id", route(async (req, res) => {
+    const id = num(Number(req.params.id));
+    const [row] = await database.select(adminOrderSelection).from(ordersTable)
+      .leftJoin(orderDetails, eq(orderDetails.orderId, ordersTable.id))
+      .leftJoin(shipments, eq(shipments.orderId, ordersTable.id))
+      .where(eq(ordersTable.id, id));
+    if (!row) throw new StoreError("سفارش پیدا نشد.", 404);
+    res.set("Cache-Control", "no-store").json({ order: adminOrderView(row) });
+  }));
+  router.get("/admin/orders/:id/tracking", route(async (req, res) => {
+    const id = num(Number(req.params.id));
+    const tracking = await readOrderTracking(database, id, true);
+    if (!tracking) throw new StoreError("سفارش پیدا نشد.", 404);
+    res.set("Cache-Control", "no-store").json(tracking);
+  }));
   router.patch(
     "/admin/orders/:id/status",
     route(async (req, res) => {
@@ -442,6 +476,8 @@ export function createManagementRouter(
         throw new StoreError("وضعیت سفارش نامعتبر است.");
       const trackingCode =
         b.trackingCode === undefined ? undefined : str(b.trackingCode, 100);
+      const carrier = b.carrier === undefined ? undefined : str(b.carrier, 100);
+      const actor = `admin:${adminIdentity(req)?.id ?? "unknown"}`;
       const order = await database.transaction(async (raw) => {
         const tx = raw as unknown as typeof database;
         return updateManagedOrder(
@@ -451,6 +487,7 @@ export function createManagementRouter(
           b.status as OrderStatus,
           trackingCode,
           onOrderChange,
+          { carrier, actor },
         );
       });
       if (afterOrderChange) await afterOrderChange().catch(() => {});

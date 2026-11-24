@@ -5,17 +5,20 @@ type BrandProps = HTMLAttributes<HTMLSpanElement> & {
 };
 
 function BrandImage({ kind, tone = 'auto', className = '', style, ...props }: BrandProps & { kind: 'logo' | 'monogram' }) {
+  const width = kind === 'logo' ? 360 : 192;
+  const base = `${import.meta.env.BASE_URL}brand/${kind}`;
+  const colors = tone === 'auto' ? (['rust', 'gold'] as const) : [tone];
   const artworkStyle = {
-    '--varsa-gold-artwork': `url("${import.meta.env.BASE_URL}brand/${kind}-gold.png")`,
+    '--varsa-gold-artwork': `url("${base}-gold-${width}.webp")`,
     ...style,
   } as CSSProperties;
   return (
     <span role="img" aria-label="ورسا" className={`varsa-brand-image varsa-brand-${kind} varsa-brand-${tone} ${className}`} style={artworkStyle} {...props}>
-      {(['rust', 'gold'] as const).map((color) => (
-        <img key={color} src={`${import.meta.env.BASE_URL}brand/${kind}-${color}.png`}
+      {colors.map((color) => (
+        <img key={color} src={`${base}-${color}-${width}.webp`}
           className={`varsa-brand-tone-${color}`} alt="" aria-hidden="true"
-          width={kind === 'logo' ? 720 : 384} height={kind === 'logo' ? (color === 'gold' ? 468 : 458) : 384}
-          draggable={false} decoding="async" />
+          width={width} height={kind === 'logo' ? (color === 'gold' ? 234 : 229) : 192}
+          draggable={false} decoding="async" fetchPriority="low" />
       ))}
     </span>
   );

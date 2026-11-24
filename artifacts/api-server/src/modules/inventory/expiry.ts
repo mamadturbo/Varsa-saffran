@@ -18,7 +18,9 @@ export async function expireOne(database: Database) {
       .for("update", { skipLocked: true })
       .limit(1);
     if (!order) return false;
-    await updateManagedOrder({} as ManagementState, tx, order.id, "cancelled");
+    await updateManagedOrder({} as ManagementState, tx, order.id, "cancelled", undefined, undefined, {
+      actor: "system:expiry",
+    });
     return true;
   });
 }

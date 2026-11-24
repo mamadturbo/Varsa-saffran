@@ -1,4 +1,5 @@
 import { readFile, readdir } from "node:fs/promises";
+import { sql } from "drizzle-orm";
 import { db, pool } from "@workspace/db";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { createHash } from "node:crypto";
@@ -47,7 +48,14 @@ try {
       migrationDb,
       process.argv.includes("--seed-empty") ? initialState() : undefined,
     );
-    console.log(JSON.stringify({ phase: "commerce", ...report }));
+    const tracking = await migrationDb.execute(sql`
+      SELECT count(*)::int AS orders_without_customer_contact
+      FROM orders WHERE customer_contact_id IS NULL
+    `);
+    console.log(JSON.stringify({
+      phase: "commerce", ...report,
+      ordersWithoutCustomerContact: tracking.rows[0]?.orders_without_customer_contact,
+    }));
     if (process.argv.includes("--import-articles"))
       console.log(
         JSON.stringify({

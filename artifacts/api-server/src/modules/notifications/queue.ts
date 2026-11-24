@@ -9,7 +9,7 @@ import {
 import type { Database } from "../catalog/repository";
 import { sendCustomerSms } from "../../lib/customer-auth";
 import { reserveSms } from '../../lib/sms-budget';
-import { sendReceiptToBale } from '../payments/bale';
+import { sendApprovalToBale, sendReceiptToBale } from '../payments/bale';
 
 export const MAX_ATTEMPTS = 6;
 export async function enqueueLegacySms(tx: Database) {
@@ -98,7 +98,13 @@ export async function handleJob(
   job: typeof outbox.$inferSelect,
   sender = sendCustomerSms,
 ) {
-  if (job.kind === "order.created" || job.kind === "order.status" || job.kind === "payment.reviewed") return;
+  if (job.kind === "order.created" || job.kind === "order.status") return;
+  if (job.kind === "payment.reviewed") {
+    const { action, actor, orderId } = job.payload;
+    if (action === "approved" && typeof actor === "string" && actor.startsWith("bale:"))
+      await sendApprovalToBale(database, Number(orderId));
+    return;
+  }
   if (job.kind === "bale.receipt") { await sendReceiptToBale(database, String(job.payload.receiptId)); return; }
   if (job.kind !== "sms.notification") throw new Error("unknown_job_kind");
   const id = Number(job.payload.notificationId);

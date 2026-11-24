@@ -37,7 +37,7 @@ export async function legacyArticles(): Promise<ManagedArticle[]> {
       )
     )
       throw new StoreError("اطلاعات مجله معتبر نیست.", 503);
-    articles.push(...rows.map((a) => ({ ...a, published: true })));
+    articles.push(...rows.map((a) => ({ ...a, published: a.published !== false })));
     if (rows.length < 1000) break;
   }
   return articles;
@@ -55,6 +55,7 @@ export function contentRouter(database: Database, store: ManagementStore) {
           legacy = await legacyArticles();
         } catch (error) {
           if (!managed.length) throw error;
+          res.set("X-Varsa-Articles-Partial", "1");
         } // Preserve pre-import managed articles during a legacy outage.
       }
       const rows = [

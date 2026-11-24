@@ -1,4 +1,3 @@
-import { VarsaMark } from '@/components/Brand';
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import {
@@ -14,7 +13,17 @@ import { useCustomer } from "@/lib/customer";
 import { customerRequest } from "@/lib/customer-api";
 import { toFaDigits } from "@/lib/site";
 import { getApiErrorMessage } from "@/lib/orders-api";
-export function CustomerLogin() {
+export function CustomerLogin({
+  tracking,
+  checkout = false,
+}: {
+  checkout?: boolean;
+  tracking?: {
+    orderNumber: string;
+    onOrderNumberChange: (value: string) => void;
+    claim: (value: string) => Promise<void>;
+  };
+}) {
   const { acceptCustomer } = useCustomer();
   const [phone, setPhone] = useState(""),
     [verifiedPhone, setVerifiedPhone] = useState(""),
@@ -59,38 +68,39 @@ export function CustomerLogin() {
     }
   };
   return (
-    <div className="vc-login">
-      <div className="vc-login-story">
-        <VarsaMark tone="gold" aria-hidden="true" className="vc-seal" />
-        <h1>
-          خوش آمدید
-          <br />
-          به خانه‌ی ورسا
+    <div className="mx-auto w-full max-w-md">
+      {!checkout && (
+        <h1 className="mb-6 text-center font-display text-2xl font-bold text-cream-50 sm:text-3xl">
+          {tracking ? "پیگیری سفارش" : "ثبت‌نام یا ورود"}
         </h1>
-        <p>
-          خریدهای شما، عطرهای محبوب شما،
-          <br />و هر آنچه برای همراهی با ورسا نیاز دارید.
-        </p>
-        <Link href="/shop">
-          بازگشت به فروشگاه
-          <ArrowLeft size={18} />
-        </Link>
-      </div>
-      <div className="vc-login-form">
-        <div className="vc-login-icon">
+      )}
+      <div className="vc-login rounded-2xl border border-gold-500/25 bg-surface-tint-soft p-5 sm:p-7">
+        <div
+          aria-hidden="true"
+          className="mx-auto mb-4 grid size-12 place-items-center rounded-full border border-gold-500/30 bg-gold-500/10 text-accent"
+        >
           {step === "phone" ? (
-            <Smartphone size={28} />
+            <Smartphone size={22} />
           ) : (
-            <ShieldCheck size={28} />
+            <ShieldCheck size={22} />
           )}
         </div>
-        <h2>{step === "phone" ? "ورود یا ساخت حساب" : "تأیید شماره موبایل"}</h2>
-        <p>
+        {step === "code" && (
+          <h2 className="mb-2 text-center text-base font-bold text-cream-50">
+            تأیید شماره موبایل
+          </h2>
+        )}
+        <p className="mb-5 text-start text-sm leading-7 text-cream-300">
           {step === "phone"
-            ? "با شماره موبایل خود وارد شوید؛ ساخت حساب به رمز عبور نیاز ندارد."
+            ? tracking
+              ? "شمارهٔ سفارش و موبایلی را که هنگام خرید ثبت کردید وارد کنید."
+              : checkout
+                ? "برای ادامهٔ خرید، شماره موبایل خود را تأیید کنید."
+                : "با شماره موبایل، وارد حساب ورسا شوید یا حساب بسازید."
             : `کد شش‌رقمی ارسال‌شده به ${toFaDigits(verifiedPhone)} را وارد کنید.`}
         </p>
         <form
+          className="space-y-4"
           onSubmit={async (e) => {
             e.preventDefault();
             if (busy) return;
@@ -106,6 +116,7 @@ export function CustomerLogin() {
                 "POST",
                 { phone: verifiedPhone, code },
               );
+              if (tracking) await tracking.claim(tracking.orderNumber);
               await acceptCustomer(r.customer);
             } catch (err) {
               setError(getApiErrorMessage(err, "ورود انجام نشد."));
@@ -114,11 +125,30 @@ export function CustomerLogin() {
             }
           }}
         >
-          <label className="vc-field">
-            <span>{step === "phone" ? "شماره موبایل" : "کد شش‌رقمی"}</span>
+          {tracking && step === "phone" && (
+            <label className="block">
+              <span className="label-luxe">شمارهٔ سفارش</span>
+              <input
+                className="input-luxe min-h-11 text-end"
+                dir="ltr"
+                autoComplete="off"
+                placeholder="VRS-…"
+                maxLength={32}
+                required
+                value={tracking.orderNumber}
+                disabled={busy}
+                onChange={(e) => tracking.onOrderNumberChange(e.target.value)}
+              />
+            </label>
+          )}
+          <label className="block">
+            <span className="label-luxe">
+              {step === "phone" ? "شماره موبایل" : "کد شش‌رقمی"}
+            </span>
             <input
+              className="input-luxe min-h-11 text-end"
               key={step}
-              autoFocus
+              autoFocus={step === "code"}
               dir="ltr"
               inputMode={step === "phone" ? "tel" : "numeric"}
               type={step === "phone" ? "tel" : "text"}
@@ -136,26 +166,35 @@ export function CustomerLogin() {
             />
           </label>
           {development && step === "code" && (
-            <p className="vc-development">
+            <p className="rounded-xl border border-gold-500/30 bg-gold-500/10 p-3 text-sm leading-6 text-accent">
               پیش‌نمایش محلی؛ پیامک واقعی ارسال نشده است.
               <br />
               کد آزمایشی: <strong dir="ltr">{development}</strong>
             </p>
           )}
           {error && (
-            <p role="alert" className="vc-error">
+            <p
+              role="alert"
+              className="rounded-xl border border-crimson-500/30 bg-crimson-500/10 p-3 text-sm leading-6 text-crimson-700 dark:text-crimson-200"
+            >
               {error}
             </p>
           )}
-          <button className="vc-button" disabled={busy}>
+          <button
+            type="submit"
+            className="btn-solid min-h-11 w-full disabled:opacity-50"
+            disabled={busy}
+          >
             {busy ? <Loader2 size={18} className="animate-spin" /> : null}
             {step === "phone" ? "دریافت کد ورود" : "تأیید و ورود"}
-            <ArrowLeft size={17} />
+            <ArrowLeft aria-hidden="true" size={17} />
           </button>
         </form>
         {step === "code" && (
-          <div className="vc-login-options">
+          <div className="mt-3 flex flex-wrap justify-between gap-2">
             <button
+              type="button"
+              className="btn-ghost min-h-11 !px-3 !py-2 text-xs disabled:opacity-50"
               disabled={busy}
               onClick={() => {
                 setStep("phone");
@@ -163,9 +202,11 @@ export function CustomerLogin() {
               }}
             >
               ویرایش شماره
-              <ArrowRight size={15} />
+              <ArrowRight aria-hidden="true" size={15} />
             </button>
             <button
+              type="button"
+              className="btn-ghost min-h-11 !px-3 !py-2 text-xs disabled:opacity-50"
               disabled={busy || seconds > 0}
               onClick={() => void request()}
             >
@@ -175,10 +216,22 @@ export function CustomerLogin() {
             </button>
           </div>
         )}
-        <p className="vc-hint">
-          <ShieldCheck size={15} />
-          کد ورود شما ۲ دقیقه اعتبار دارد؛ آن را در اختیار دیگران نگذارید.
-        </p>
+        {step === "code" && (
+          <p className="mt-4 flex items-start gap-2 text-xs leading-6 text-cream-400">
+            <ShieldCheck
+              aria-hidden="true"
+              size={15}
+              className="mt-1 shrink-0"
+            />
+            کد ورود تا ۲ دقیقه معتبر است. آن را در اختیار دیگران نگذارید.
+          </p>
+        )}
+      </div>
+      <div className="mt-4 text-center">
+        <Link href="/shop" className="btn-ghost min-h-11">
+          بازگشت به فروشگاه
+          <ArrowRight aria-hidden="true" size={17} />
+        </Link>
       </div>
     </div>
   );

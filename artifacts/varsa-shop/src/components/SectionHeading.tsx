@@ -23,7 +23,7 @@ export function SectionHeading({
       {eyebrow && (
         <span className="reveal chip mb-4">{eyebrow}</span>
       )}
-      <Heading tabIndex={Heading === 'h1' ? -1 : undefined} className="reveal reveal-delay-1 font-display text-3xl font-bold leading-tight text-cream-50 text-balance sm:text-4xl lg:text-[2.75rem]">
+      <Heading tabIndex={Heading === 'h1' ? -1 : undefined} className="reveal reveal-delay-1 font-display text-3xl font-bold text-cream-50 text-balance sm:text-4xl lg:text-[2.75rem]">
         {title}
       </Heading>
       {center && <ArabesqueDivider className="reveal reveal-delay-2 mt-5" />}

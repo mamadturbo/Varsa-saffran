@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import {
   ordersTable,
+  customerContacts,
   variants,
   inventory,
   coupons,
@@ -17,6 +18,9 @@ import type { ManagementState, OrderMeta } from "@workspace/catalog";
 import type { OrderToSave } from "../../lib/create-order";
 import { StoreError, priceOrder } from "../../lib/management-store";
 import type { Database } from "../catalog/repository";
+import { normalizeIranMobile } from "@workspace/validation";
+import { cardTransferConfig } from "../payments/config";
+import { recordOrderEvent } from "./tracking";
 
 export function reservationSeconds() {
   const seconds = Number(process.env.RESERVATION_TTL_SECONDS ?? 86400);
@@ -146,9 +150,18 @@ export async function saveOrder(database: Database, input: OrderToSave) {
         });
       }
     }
+    const mobile = normalizeIranMobile(input.phone);
+    let customerContactId: string | undefined;
+    if (mobile) {
+      await tx.insert(customerContacts).values({ phone: mobile })
+        .onConflictDoNothing({ target: customerContacts.phone });
+      const [contact] = await tx.select({ id: customerContacts.id }).from(customerContacts)
+        .where(eq(customerContacts.phone, mobile));
+      customerContactId = contact.id;
+    }
     await tx
       .update(ordersTable)
-      .set({ items: snapshots })
+      .set({ items: snapshots, customerContactId })
       .where(eq(ordersTable.id, order.id));
     if (selected.length) {
       await tx
@@ -174,12 +187,20 @@ export async function saveOrder(database: Database, input: OrderToSave) {
     };
     await tx.insert(orderDetails).values({
       orderId: order.id,
+      paymentMethod: pricing.shippingConfigured && cardTransferConfig().enabled ? "card_transfer" : "manual",
       meta,
       addressSnapshot: {
         name: input.customerName,
         phone: input.phone,
         address: input.address,
       },
+    });
+    await recordOrderEvent(tx, {
+      orderId: order.id,
+      kind: "order_created",
+      actor: "system:checkout",
+      eventKey: `created:${order.id}`,
+      occurredAt: order.createdAt,
     });
     await tx.insert(outbox).values({
       id: `order-created:${order.id}`,

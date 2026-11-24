@@ -53,3 +53,8 @@ were saved under `.local/architecture-baseline-20261027/`; no repository was
 created. Historical implementation reports remain in STAGE files and
 `docs/history/`, including the previous README. They are not current setup
 instructions. UI redesign and a full SSR/SSG migration remain outside scope.
+- [SEO audit and rendering decision](docs/seo-audit.md)
+- [SEO/GEO implementation and verification](docs/seo-results.md)
+- [Persian keyword research and GEO monitoring](docs/seo-geo-content.md)
+- [SSR deployment and indexing checklist](docs/seo-launch.md)
+

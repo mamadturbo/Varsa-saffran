@@ -1,14 +1,14 @@
 import { pagePath } from '@/lib/routes';
 import { Link } from 'wouter';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { fetchFeaturedProducts } from '@/lib/api';
+import { usePublicPage } from '@/lib/page-context';
 import { SectionHeading } from '@/components/SectionHeading';
 import { ProductCard } from '@/components/ProductCard';
-import { useAsyncData } from '@/lib/hooks-extra';
 
 
 export function FeaturedProducts() {
-  const { data: products, loading, error } = useAsyncData(fetchFeaturedProducts, []);
+  const { data, loading } = usePublicPage();
+  const products = data.products?.filter(product => product.is_featured);
 
   return (
     <section className="relative py-24">
@@ -22,7 +22,7 @@ export function FeaturedProducts() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-accent" strokeWidth={1.5} />
           </div>
-        ) : error ? (
+        ) : data.products === null ? (
           <p className="py-20 text-center text-cream-400">بارگذاری محصولات با خطا روبه‌رو شد.</p>
         ) : !products?.length ? (
           <p className="py-20 text-center text-cream-400">هنوز محصولی برای نمایش در این بخش انتخاب نشده است.</p>

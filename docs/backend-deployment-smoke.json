@@ -15,7 +15,8 @@
       "reconciled": true,
       "sourceSha256": "47ec2d2a47f7578dd56d274e94cd3f2e9f1cee9c735a722b5cfb3e5d604efc50",
       "customers": 0,
-      "messages": 0
+      "messages": 0,
+      "ordersWithoutCustomerContact": 0
     },
     {
       "phase": "articles",
@@ -46,9 +47,8 @@
     "uploadsAuthenticateBeforeBodyParsing": true
   },
   "frontend": {
-    "strictMetadataBuild": true,
-    "pages": 22,
-    "warnings": []
+    "serverRendered": true,
+    "verifiedSitemapPages": 26
   },
   "legacyUpstreamStopped": true
 }

@@ -121,6 +121,7 @@ test("admin writes require login; changes persist and are visible in the public 
     200,
   );
   const publicRows = await req("/store/products", "GET", undefined, false);
+  assert(publicRows.body.every((r: object) => ['crocin', 'picrocrocin', 'safranal'].every(key => !Object.hasOwn(r, key))));
   assert.equal(
     publicRows.body.find((r: { id: string }) => r.id === p.id).price,
     500000,

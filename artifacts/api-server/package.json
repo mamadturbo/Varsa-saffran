@@ -11,6 +11,7 @@
     "start": "node --env-file-if-exists=.env --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "worker": "node --env-file-if-exists=.env --enable-source-maps dist/worker.mjs",
+    "bale:setup": "node --env-file-if-exists=.env.bale --import tsx scripts/setup-bale.ts",
     "migrate:commerce": "node --import tsx scripts/migrate-commerce.ts",
     "test:postgres": "node --import tsx --test test/postgres-commerce.test.ts",
     "verify:deployment": "node --import tsx scripts/verify-deployment.ts"
@@ -49,4 +50,3 @@
     "tsx": "catalog:"
   }
 }
-

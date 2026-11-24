@@ -20,6 +20,8 @@ export interface CatalogProduct {
   sort_order: number;
 }
 
+export type StorefrontProduct = Omit<CatalogProduct, 'crocin' | 'picrocrocin' | 'safranal'>;
+
 export class CatalogUnavailableError extends Error {
   constructor() {
     super('دریافت محصولات موقتاً امکان‌پذیر نیست. لطفاً دوباره تلاش کنید.');
@@ -28,7 +30,7 @@ export class CatalogUnavailableError extends Error {
 
 const COLUMNS = 'id,slug,name,category,short_description,long_description,crocin,picrocrocin,safranal,weight,weight_unit,price,image_url,is_featured,sort_order';
 
-export function parseCatalogProduct(value: unknown): CatalogProduct {
+function validateStorefrontProduct(value: unknown): StorefrontProduct {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new CatalogUnavailableError();
   const row = value as Record<string, unknown>;
   for (const key of ['id', 'slug', 'name', 'category', 'weight_unit', 'image_url']) {
@@ -37,13 +39,46 @@ export function parseCatalogProduct(value: unknown): CatalogProduct {
   if (typeof row.short_description !== 'string' ||
       (row.long_description !== null && typeof row.long_description !== 'string') ||
       typeof row.is_featured !== 'boolean') throw new CatalogUnavailableError();
-  for (const key of ['crocin', 'picrocrocin', 'safranal', 'weight', 'price', 'sort_order']) {
+  for (const key of ['weight', 'price', 'sort_order']) {
     if (typeof row[key] !== 'number' || !Number.isFinite(row[key])) throw new CatalogUnavailableError();
   }
   if (!Number.isSafeInteger(row.price) || (row.price as number) < 0 || (row.price as number) > 2_147_483_647) {
     throw new CatalogUnavailableError();
   }
-  return row as unknown as CatalogProduct;
+  return row as unknown as StorefrontProduct;
+}
+
+export function parseCatalogProduct(value: unknown): CatalogProduct {
+  const product = validateStorefrontProduct(value) as CatalogProduct;
+  if (![product.crocin, product.picrocrocin, product.safranal].every(Number.isFinite)) {
+    throw new CatalogUnavailableError();
+  }
+  return product;
+}
+
+export function toStorefrontProduct(product: StorefrontProduct): StorefrontProduct {
+  return {
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    category: product.category,
+    short_description: product.short_description,
+    long_description: product.long_description,
+    weight: product.weight,
+    weight_unit: product.weight_unit,
+    price: product.price,
+    image_url: product.image_url,
+    is_featured: product.is_featured,
+    sort_order: product.sort_order,
+    active: typeof product.active === 'boolean' ? product.active : undefined,
+    stock: product.stock === null || (Number.isSafeInteger(product.stock) && product.stock! >= 0)
+      ? product.stock
+      : undefined,
+  };
+}
+
+export function parseStorefrontProduct(value: unknown): StorefrontProduct {
+  return toStorefrontProduct(validateStorefrontProduct(value));
 }
 
 // Both the storefront and checkout read the same public database view. Never
@@ -84,14 +119,14 @@ export async function loadCatalogProducts(config: {
 
 // Compatibility for carts created before database IDs became authoritative.
 // Resolve only against rows that still exist in the current database response.
-export function resolveCatalogProduct(products: readonly CatalogProduct[], id: string): CatalogProduct | undefined {
+export function resolveCatalogProduct<P extends StorefrontProduct>(products: readonly P[], id: string): P | undefined {
   const exact = products.find((product) => product.id === id);
   if (exact) return exact;
   if (id.startsWith('local-')) return products.find((product) => product.slug === id.slice(6));
   return undefined;
 }
 
-export function reconcileCart<T extends { product: CatalogProduct; quantity: number }>(items: readonly T[], products: readonly CatalogProduct[]) {
+export function reconcileCart<T extends { product: StorefrontProduct; quantity: number }>(items: readonly T[], products: readonly StorefrontProduct[]) {
   const missingIds: string[] = [];
   let changed = false;
   const next = items.map((item) => {

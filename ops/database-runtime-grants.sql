@@ -27,6 +27,9 @@ DO $$ DECLARE tab text; BEGIN
    END IF;
  END LOOP;
 END $$;
+GRANT SELECT,INSERT ON customer_contacts,order_events TO varsa_api;
+GRANT SELECT,INSERT,UPDATE ON customer_followups,shipments TO varsa_api;
+GRANT USAGE ON SEQUENCE order_events_id_seq TO varsa_api;
 -- Intentionally no access to the retired document or migration ledger.
 GRANT SELECT,UPDATE ON admin_accounts TO varsa_api;
 GRANT SELECT,INSERT,UPDATE,DELETE ON admin_sessions,security_limits TO varsa_api;

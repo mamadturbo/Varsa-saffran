@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { buildPageMeta, metadataTags, renderMetadata, replaceMetadata, publicOrigin, relativeMetaPath } from '../../varsa-shop/src/lib/page-meta';
-import { loadMetaArticles, resolvePageMeta } from '../../varsa-shop/src/lib/meta-data';
-import { snapshotFileForPath, isPageMetadataRequest } from '../../varsa-shop/seo-plugin';
+import { isPageMetadataRequest } from '../../varsa-shop/src/http-seo';
 import { legacyCatalogFixture } from './catalog-fixture';
 const config = { siteUrl: 'https://shop.example.test', basePath: '/store/' };
 const product = legacyCatalogFixture()[0];
@@ -68,25 +67,7 @@ test('managed metadata replaces the previous block without duplicating tags or t
   assert(updated.includes('<script src="/app.js"></script>')); assert(!updated.includes('old'));
   assert.throws(() => replaceMetadata('<head></head>', buildPageMeta('/')));
 });
-test('snapshot filenames decode Persian once while rejecting traversal, separators and Windows devices', () => {
-  assert.equal(snapshotFileForPath('/journal/'+encodeURIComponent(article.slug)), 'journal/راهنمای-تست/index.html');
-  for (const path of ['/products/..', '/products/%2e%2e', '/products/a%2fb', '/products/a%5cb', '/products/con', '/products/name.', '/products/%00', '/products/a%3Ab']) assert.throws(() => snapshotFileForPath(path));
+test('metadata paths respect the storefront base and preserve escaped slugs', () => {
   assert.equal(relativeMetaPath('/store/products/50%25', '/store/'), '/products/50%25');
   assert.equal(relativeMetaPath('/storefront/shop', '/store/'), '/not-found');
-});
-test('metadata resolver reads live catalog data and fails closed on outages', async () => {
-  let reads = 0;
-  const source = { ...config, url: 'https://catalog.example.test', anonKey: 'public-test', fetch: async () => { reads++; return new Response(JSON.stringify([product]), { status: 200 }); } };
-  assert.equal((await resolvePageMeta(`/products/${product.slug}`, source)).title, `${product.name} | ورسا`);
-  assert.equal(reads, 1);
-  const down = { ...source, fetch: async () => new Response('', { status: 503 }) };
-  assert((await resolvePageMeta('/products/missing', down)).robots.startsWith('noindex'));
-  assert.equal((await resolvePageMeta('/contact', down)).robots, 'index,follow');
-});
-test('article metadata uses the API and rejects malformed rows', async () => {
-  const urls:string[]=[];
-  const source={apiUrl:'https://shop.example.test',fetch:async(input:RequestInfo|URL)=>{urls.push(String(input));return new Response(JSON.stringify([article]),{status:200});}};
-  assert.equal((await loadMetaArticles(source)).length,1);
-  assert.deepEqual(urls,['https://shop.example.test/api/articles']);
-  await assert.rejects(loadMetaArticles({...source,fetch:async()=>new Response(JSON.stringify([{slug:'missing fields'}]),{status:200})}));
 });

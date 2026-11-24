@@ -17,10 +17,11 @@ export function Hero() {
   const [interacted, setInteracted] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setReducedMotion(preference.matches);
+    update();
     preference.addEventListener('change', update);
     return () => preference.removeEventListener('change', update);
   }, []);
@@ -60,7 +61,7 @@ export function Hero() {
             <h1
               tabIndex={-1}
               key={`title-${index}`}
-              className="hero-title motion-safe:animate-fade-up mt-6 font-display text-[clamp(2rem,6vw,3.75rem)] font-bold leading-[1.6] text-cream-50 text-balance [text-shadow:0_2px_18px_rgba(0,0,0,.65)] sm:mt-8"
+              className="hero-title motion-safe:animate-fade-up mt-6 font-display text-[clamp(2rem,6vw,3.75rem)] font-bold text-cream-50 text-balance [text-shadow:0_2px_18px_rgba(0,0,0,.65)] sm:mt-8"
             >
               {current.title.split('؛').map((part, i) => (
                 <span key={i} className="block first:mb-2">

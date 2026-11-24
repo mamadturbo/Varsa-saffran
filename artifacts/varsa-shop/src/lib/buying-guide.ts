@@ -1,4 +1,4 @@
-import type { CatalogProduct } from '@workspace/catalog';
+import type { StorefrontProduct as CatalogProduct } from "@workspace/catalog";
 
 export type GuideMode = 'types' | 'price' | 'gift';
 export const GUIDE_MODES: { value: GuideMode; label: string }[] = [
@@ -59,7 +59,9 @@ export function buildGuideGroups(products: readonly CatalogProduct[], mode: Guid
 
 export function categoryGuide(category: string): { text: string; cut?: 'intact' | 'pieces' | 'style' } {
   switch (normalizedCategory(category)) {
+    case 'سوپر نگین': return { text: 'بسته‌های سوپر نگین ورسا را بر اساس وزن و بهای هر واحد مقایسه کنید. اگر به رشته‌های درشت برای تزیین غذا نیاز دارید، شکل برش را در توضیح همان بسته بررسی کنید.' };
     case 'نگین': return { cut: 'intact', text: 'بخش قرمز کلاله، بیشتر به‌صورت رشته‌های سالم و جدا از هم. اگر ظاهر رشته برایتان مهم است، شکل برش را در مشخصات محصول بررسی کنید.' };
+    case 'شبه نگین': return { text: 'اگر زعفران را برای دم‌کردن یا آسیاب‌کردن می‌خواهید، وزن و قیمت بسته‌های شبه نگین را با دسته‌های دیگر مقایسه کنید. توضیح هر بسته مشخصات همان محصول را نشان می‌دهد.' };
     case 'سرگل': return { cut: 'pieces', text: 'بخش قرمز کلاله با قطعات کوتاه‌تر و شکستگی بیشتر نسبت به نگین. وزن و مبلغ هر بسته را کنار شکل برش مقایسه کنید.' };
     case 'پوشال': return { cut: 'style', text: 'بخش قرمز کلاله همراه با مقدار کوتاهی از خامهٔ زرد. برای انتخاب، توضیح شکل رشته و وزن همان محصول را بخوانید.' };
     default: return { text: isGiftCategory(category)

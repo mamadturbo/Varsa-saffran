@@ -17,7 +17,7 @@ import {
   customerNotificationsTable,
   customersTable,
 } from "@workspace/db/schema";
-import { createManagementStore } from "../src/lib/management-store";
+import { createManagementStore, StoreError } from "../src/lib/management-store";
 import { createManagementRouter } from "../src/lib/management-router";
 import { createOrdersRouter } from "../src/lib/orders-router";
 import {
@@ -69,6 +69,11 @@ app.use(
     services.identity,
   ),
 );
+app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  res.status(error instanceof StoreError ? error.status : 503).json({
+    message: error instanceof StoreError ? error.message : "isolated request failed",
+  });
+});
 let server: ReturnType<typeof app.listen>, base: string, adminToken: string;
 const envNames = [
   "VARSA_ADMIN_PASSWORD",
@@ -98,7 +103,7 @@ before(async () => {
 beforeEach(async () => {
   await pg.exec('TRUNCATE commerce_products CASCADE; TRUNCATE coupons CASCADE; TRUNCATE store_config; TRUNCATE content_entries; TRUNCATE outbox; TRUNCATE stored_files');
   await pg.exec(
-    "TRUNCATE orders RESTART IDENTITY CASCADE; TRUNCATE customers CASCADE; TRUNCATE customer_otps; TRUNCATE customer_rate_limits; TRUNCATE store_management",
+    "TRUNCATE orders RESTART IDENTITY CASCADE; TRUNCATE customer_contacts CASCADE; TRUNCATE customers CASCADE; TRUNCATE customer_otps; TRUNCATE customer_rate_limits; TRUNCATE store_management",
   );
   codes.clear();
   sms.length = 0;
@@ -787,3 +792,63 @@ test("SMS notifications require both store setting and customer consent, with du
 });
 
 
+
+test("guest contacts group by mobile, while owner tracking and admin followups stay isolated", async () => {
+  const first = await req("/orders", "POST", await intent("09123456789"));
+  const second = await req("/orders", "POST", {
+    ...await intent("+۹۸ ۹۱۲-۳۴۵-۶۷۸۹"),
+    customerName: "نام تازهٔ مشتری",
+  });
+  assert.equal(first.status, 201);
+  assert.equal(second.status, 201);
+  const owner = await login();
+  assert.equal((await req("/admin/customers", "GET", undefined, owner.cookie)).status, 401);
+  assert.equal((await req(`/customer/orders/${first.body.id}/tracking`, "GET", undefined, owner.cookie)).status, 404);
+  const claims = await Promise.all(Array.from({ length: 4 }, () =>
+    req("/customer/claim-order", "POST", { orderNumber: first.body.orderNumber }, owner.cookie)));
+  assert(claims.every((response) => response.status === 200 && response.body.orderId === first.body.id));
+  const dashboard = await req("/customer/dashboard", "GET", undefined, owner.cookie);
+  assert.deepEqual(dashboard.body.orders.map((row: { id: string }) => row.id), [first.body.id]);
+  assert(!JSON.stringify(dashboard.body).includes("customerContactId"));
+
+  const list = await req("/admin/customers?q=" + encodeURIComponent("نام تازه"), "GET", undefined, undefined, true);
+  assert.equal(list.status, 200);
+  assert.equal(list.body.contacts.length, 1);
+  const [contact] = list.body.contacts;
+  assert.equal(contact.orderCount, 2);
+  assert.equal(contact.phone, "09123456789");
+  assert.equal(contact.paidTotal, "0");
+  const root = `/admin/customers/${contact.id}`;
+  const note = await req(`${root}/followups`, "POST", { text: "یادداشت خصوصی" }, undefined, true);
+  assert.equal(note.status, 201);
+  const task = await req(`${root}/followups`, "POST", {
+    text: "پیگیری موعددار", dueAt: "2025-04-04T12:00:00.000Z",
+  }, undefined, true);
+  assert.equal(task.status, 201);
+  const due = await req("/admin/customers?due=true", "GET", undefined, undefined, true);
+  assert.deepEqual(due.body.contacts.map((row: { id: string }) => row.id), [contact.id]);
+  const rescheduled = await req(`${root}/followups/${task.body.followup.id}`, "PATCH",
+    { dueAt: "2025-04-05T12:00:00.000Z" }, undefined, true);
+  assert.equal(rescheduled.body.followup.dueAt, "2025-04-05T12:00:00.000Z");
+  const completed = await req(`${root}/followups/${task.body.followup.id}`, "PATCH", { complete: true }, undefined, true);
+  assert.equal(completed.status, 200);
+  assert(completed.body.followup.completedAt);
+  assert.equal((await req("/admin/customers?due=true", "GET", undefined, undefined, true)).body.contacts.length, 0);
+  assert.equal((await req(root, "GET", undefined, undefined, true)).body.orders.length, 2);
+
+  const ship = `/admin/orders/${first.body.id}/status`;
+  const shipment = { status: "shipped", trackingCode: "00045", carrier: "پست" };
+  assert.equal((await req(ship, "PATCH", shipment, undefined, true)).status, 200);
+  assert.equal((await req(ship, "PATCH", shipment, undefined, true)).status, 200);
+  assert.equal((await req(ship, "PATCH", { status: "delivered" }, undefined, true)).status, 200);
+  const tracking = await req(`/customer/orders/${first.body.id}/tracking`, "GET", undefined, owner.cookie);
+  assert.equal(tracking.status, 200);
+  assert.equal(tracking.body.shipment.trackingCode, "00045");
+  assert.equal(tracking.body.shipment.carrier, "پست");
+  assert(tracking.body.shipment.deliveredAt);
+  assert(tracking.body.shipment.shippedAt);
+  assert.deepEqual(tracking.body.events.map((event: { kind: string }) => event.kind),
+    ["order_created", "status_changed", "shipment_updated", "status_changed"]);
+  assert(!JSON.stringify(tracking.body).includes("actor"));
+  assert(!JSON.stringify(tracking.body).includes("یادداشت خصوصی"));
+});

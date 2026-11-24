@@ -5,35 +5,35 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { readStoreContent, type StoreContent } from "./management-api";
-import { buildContactConfig } from "./contact-config";
-import { CONTACT } from "./contacts";
+import { browserPublicApi, type PublicStore } from "./public-page";
+import { usePublicPage } from "./page-context";
+import { storeContact } from "./contacts";
 import { SITE, formatPrice } from "./site";
-const Context = createContext<StoreContent | null>(null);
+const Context = createContext<PublicStore | null>(null);
 export function StoreContentProvider({ children }: { children: ReactNode }) {
-  const [content, setContent] = useState<StoreContent | null>(null);
+  const { data } = usePublicPage();
+  const [refreshed, setRefreshed] = useState<{ page: typeof data; content: PublicStore }>();
   useEffect(() => {
     let active = true;
     const load = () => {
-      readStoreContent()
+      browserPublicApi.store()
         .then((c) => {
-          if (active) setContent(c);
+          if (active) setRefreshed({ page: data, content: c });
         })
         .catch(() => {});
     };
-    load();
+    if (data.path === "/account" || data.path.startsWith("/payment/") || data.path.startsWith("/checkout/")) load();
     window.addEventListener("focus", load);
     return () => {
       active = false;
       window.removeEventListener("focus", load);
     };
-  }, []);
-  return <Context.Provider value={content}>{children}</Context.Provider>;
+  }, [data]);
+  return <Context.Provider value={(refreshed?.page === data ? refreshed.content : data.store) ?? null}>{children}</Context.Provider>;
 }
 export const useStoreContent = () => useContext(Context);
 export function useStoreContact() {
-  const content = useStoreContent();
-  return content ? buildContactConfig(content.settings) : CONTACT;
+  return storeContact(useStoreContent()?.settings);
 }
 export function useShippingInfo() {
   const s = useStoreContent()?.settings;

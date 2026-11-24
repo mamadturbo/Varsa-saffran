@@ -28,15 +28,14 @@ async function ready(page, route) {
   assert(products.length, 'A real catalog is required for purchase flow checks');
   const contexts = [];
   const errors = [];
-  const article = { id: 'responsive-fixture', slug: 'responsive-test', title: 'راهنمای انتخاب و نگهداری زعفران با عنوان طولانی برای بررسی خوانایی در موبایل و تبلت', category: 'راهنما', author: 'تیم ورسا', read_time: 5, content: '## نگهداری زعفران\n\nزعفران را دور از نور و رطوبت نگه دارید.\n\n' + 'متن نمونه برای بررسی خوانایی در اندازه‌های مختلف. '.repeat(15), image_url: products[0].image_url, created_at: new Date().toISOString() };
   for (const theme of (process.env.QA_THEMES || 'light,dark').split(',')) {
     const context = await browser.newContext({ reducedMotion: 'reduce', hasTouch: true }); contexts.push(context);
-    await context.addInitScript(t => localStorage.setItem('varsa-theme', t), theme);
+    await context.addInitScript(t => localStorage.setItem('varsa-theme-v2', t), theme);
     // No checkout submissions, login requests, or data writes in this QA run.
     await context.route('**/api/**', async route => {
       const req = route.request();
+      if (req.url().endsWith('/customer/me')) return route.fulfill({ json: { customer: null } });
       if (!['GET', 'HEAD'].includes(req.method()) && !req.url().endsWith('/store/quote')) return route.fulfill({ status: 418, json: { error: 'Writes disabled in responsive QA' } });
-      if (req.url().endsWith('/articles')) return route.fulfill({ json: [article] });
       return route.continue();
     });
     await context.route('https://fonts.googleapis.com/**', route => route.abort());
@@ -45,7 +44,7 @@ async function ready(page, route) {
     page.on('pageerror', e => errors.push(e.message));
     for (const [width, height] of JSON.parse(process.env.QA_VIEWPORTS || '[[320,740],[375,812],[390,844],[600,960],[768,1024],[820,1180],[1024,768],[1280,800],[1440,900],[844,390]]')) {
       await page.setViewportSize({ width, height });
-      for (const route of ['/', '/shop', '/guide', '/about', '/contact', '/journal', '/journal/responsive-test', '/account', '/admin', '/missing']) {
+      for (const route of ['/', '/shop', '/guide', '/about', '/contact', '/journal', '/guide/store-saffron', '/account', '/admin', '/missing']) {
         await ready(page, route);
         await inspect(page, `${theme} ${width}x${height} ${route}`);
         if (route === '/' && width < 1280) {
@@ -62,32 +61,28 @@ async function ready(page, route) {
           const region = page.getByRole('region', { name: 'جدول مقایسه محصولات' });
           assert(await region.evaluate(el => el.scrollWidth > 0));
           await page.locator('summary').click();
-          await page.locator('article').first().getByRole('button', { name: 'افزودن', exact: true }).click();
-          await page.locator('#cart-dialog').waitFor();
-          await inspect(page, `${theme} ${width} cart`);
-          await page.getByRole('button', { name: 'ادامه ثبت سفارش', exact: true }).click();
-          await page.locator('#checkout-dialog').waitFor();
-          await inspect(page, `${theme} ${width} checkout`);
-          const input = page.locator('#ck-phone'); await input.scrollIntoViewIfNeeded(); await input.focus();
-          assert(Number.parseFloat(await input.evaluate(el => getComputedStyle(el).fontSize)) >= 16 || width >= 640, 'Mobile input below 16px');
-          await page.locator('#checkout-dialog button[type="submit"]').scrollIntoViewIfNeeded();
+          await page.getByRole('button', { name: 'خرید', exact: true }).first().click();
+          await page.waitForURL('**/checkout/register');
+          await page.getByRole('heading', { name: 'ثبت‌نام یا ورود', exact: true }).waitFor();
+          await inspect(page, `${theme} ${width} checkout registration`);
+          assert.equal(await page.getByRole('dialog').count(), 0);
           await page.screenshot({ path: path.join(out, `after-${theme}-${width}-checkout.png`) });
-          await page.locator('#checkout-dialog').getByRole('button', { name: 'بستن', exact: true }).click();
-          await page.locator('#cart-dialog').getByRole('button', { name: 'بستن', exact: true }).click();
+          await page.getByRole('link', { name: 'بازگشت به فروشگاه', exact: true }).click();
+          await page.getByRole('button', { name: 'خرید', exact: true }).first().waitFor();
         }
-        if ([320, 768, 1024, 1440].includes(width) && ['/', '/shop', '/account', '/journal/responsive-test'].includes(route)) {
+        if ([320, 768, 1024, 1440].includes(width) && ['/', '/shop', '/account', '/guide/store-saffron'].includes(route)) {
           await page.evaluate(() => window.scrollTo(0, 0));
           await page.screenshot({ path: path.join(out, `after-${theme}-${width}-${route === '/' ? 'home' : route.split('/').pop()}.png`), fullPage: true });
         }
       }
-      await ready(page, '/products/' + products[0].slug);
-      await page.locator('#product-dialog').waitFor();
+      await ready(page, '/products/' + encodeURIComponent(products[0].slug));
+      await page.locator('#product-title').waitFor();
       await inspect(page, `${theme} ${width} product`);
-      const add = page.locator('#product-dialog').getByRole('button', { name: 'افزودن به سبد خرید', exact: true });
+      const add = page.getByRole('button', { name: 'خرید محصول', exact: true });
       await add.scrollIntoViewIfNeeded();
       await page.screenshot({ path: path.join(out, `after-${theme}-${width}-product.png`) });
-      const close = page.locator('#product-dialog').getByRole('button', { name: 'بستن', exact: true });
-      assert(await close.isVisible(), 'Product close button unavailable after scrolling');
+      const close = page.getByRole('link', { name: 'بازگشت به فهرست محصولات' });
+      assert(await close.isVisible(), 'Product return link unavailable');
       await close.click();
       console.log(`PASS ${theme} ${width}x${height}`);
     }

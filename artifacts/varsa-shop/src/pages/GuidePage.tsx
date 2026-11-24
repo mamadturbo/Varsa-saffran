@@ -1,24 +1,25 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useSearch } from 'wouter/use-browser-location';
+import { usePublicPage, useRawSearch } from '@/lib/page-context';
+import { GUIDE_ARTICLES } from '@/lib/guide-articles';
 import { ArrowLeft, BookOpen, Gift, Loader2, Package } from 'lucide-react';
-import { fetchProducts } from '@/lib/api';
-import { useAsyncData } from '@/lib/hooks-extra';
 import { useReveal } from '@/lib/hooks';
 import { formatPrice, formatWeight, toFaDigits } from '@/lib/site';
-import { pagePath } from '@/lib/routes';
+import { categoryPath, pagePath, productPath } from '@/lib/routes';
 import { shopCategoryHref } from '@/lib/shop-filter';
 import { buildGuideGroups, categoryGuide, GUIDE_MODES, guideModeHref, isGiftCategory, readGuideMode } from '@/lib/buying-guide';
 import { SectionHeading } from '@/components/SectionHeading';
 import { SaffronCut } from '@/components/SaffronCut';
+import { cutStudy, representativeProducts } from '@/lib/representative-products';
 
 export function GuidePage() {
   const ref = useReveal<HTMLElement>();
   const [, navigate] = useLocation();
-  const search = useSearch();
+  const search = useRawSearch();
   const mode = readGuideMode(search);
-  const [attempt, setAttempt] = useState(0);
-  const { data: products, loading, error } = useAsyncData(fetchProducts, [attempt]);
+  const { data, loading, reload } = usePublicPage();
+  const products = data.products;
+  const packages = representativeProducts(products ?? []);
   const groups = useMemo(() => buildGuideGroups(products ?? [], mode), [products, mode]);
 
   return (
@@ -26,6 +27,22 @@ export function GuidePage() {
       <div className="container-luxe">
         <SectionHeading as="h1" eyebrow="پیش از خرید" title="کدام زعفران را انتخاب کنم؟"
           subtitle="از شکل برش شروع کنید، بعد وزن و مبلغ هر بسته را کنار هم ببینید. برای هدیه، محتویات همان پک هم مهم است." />
+
+        {mode === 'types' && <section className="card-luxe mt-10 p-6" aria-labelledby="guide-cuts">
+          <h2 id="guide-cuts" className="text-xl font-bold text-cream-50">تفاوت نگین و پوشال چیست؟</h2>
+          <p className="mt-3 text-sm leading-7 text-cream-300">
+            تفاوت قابل‌دیدن در شکل رشته و خامه است. در نگین رشته‌های قرمز کلاله معمولاً جدا از هم‌اند. در پوشال ممکن است خامهٔ روشن در انتهای رشته‌ها دیده شود.{' '}
+            <a href={cutStudy.url} className="text-accent underline underline-offset-4">{cutStudy.label}</a>
+          </p>
+          {packages.length > 0 && <ul className="mt-3 grid gap-2 sm:grid-cols-3">
+            {packages.map(product => <li key={product.id}>
+              <Link href={productPath(product.slug)} className="inline-flex min-h-11 flex-col justify-center rounded-xl border border-gold-500/25 px-3 py-2 text-sm text-accent underline underline-offset-4">
+                <span>{product.name}</span>
+                <span>{formatPrice(product.price)}</span>
+              </Link>
+            </li>)}
+          </ul>}
+        </section>}
 
         <section className="mt-12" aria-labelledby="guide-categories">
           <h2 id="guide-categories" className="text-xl font-bold text-cream-50">مقایسه دسته‌های فعلی</h2>
@@ -51,10 +68,10 @@ export function GuidePage() {
 
           {loading ? (
             <p role="status" className="mt-8 flex items-center gap-2 text-cream-300"><Loader2 aria-hidden="true" className="h-5 w-5 animate-spin" />در حال دریافت محصولات برای راهنما...</p>
-          ) : error ? (
+          ) : products === null ? (
             <div role="alert" className="card-luxe mt-8 p-6">
               <p className="text-cream-200">دریافت محصولات برای مقایسه انجام نشد.</p>
-              <button className="btn-gold mt-4" onClick={() => setAttempt(value => value + 1)}>تلاش دوباره</button>
+              <button className="btn-gold mt-4" onClick={reload}>تلاش دوباره</button>
             </div>
           ) : groups.length === 0 ? (
             <div className="card-luxe mt-8 p-6">
@@ -83,7 +100,7 @@ export function GuidePage() {
                         <div><dt className="text-cream-400">بازه مبلغ هر بسته</dt><dd className="mt-1 font-semibold text-price">{group.minPrice === group.maxPrice ? formatPrice(group.minPrice) : `${formatPrice(group.minPrice)} تا ${formatPrice(group.maxPrice)}`}</dd></div>
                       </dl>
                       {mode === 'price' && <p className="mt-4 text-xs leading-6 text-cream-300">کمترین مبلغ بسته در این دسته: {group.lowestPriceProduct.name}، {formatPrice(group.lowestPriceProduct.price)}</p>}
-                      <Link href={shopCategoryHref(group.category)} className="btn-gold mt-6 self-start">دیدن محصولات {group.category}<ArrowLeft aria-hidden="true" className="h-4 w-4" /></Link>
+                      <Link href={categoryPath(group.category) ?? shopCategoryHref(group.category)} className="btn-gold mt-6 self-start">دیدن محصولات {group.category}<ArrowLeft aria-hidden="true" className="h-4 w-4" /></Link>
                     </article>
                   );
                 })}
@@ -102,11 +119,20 @@ export function GuidePage() {
           <details className="mt-6 text-sm text-cream-300">
             <summary className="min-h-11 cursor-pointer py-3 text-accent">درباره توضیح تفاوت برش‌ها</summary>
             <p className="mt-2 leading-7">توضیح نگین، سرگل و پوشال بر اساس شکل کلاله و میزان بخش خامه است؛ شمای کنار کارت‌ها تصویر واقعی محصول نیست.</p>
-            <a className="mt-3 inline-block underline underline-offset-4" href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7174224/" target="_blank" rel="noreferrer">پژوهش درباره تفاوت ظاهری نگین، سرگل و پوشال</a>
+            <a className="mt-3 inline-block underline underline-offset-4" href={cutStudy.url} target="_blank" rel="noreferrer">{cutStudy.label}</a>
             <span aria-hidden="true"> · </span>
             <a className="mt-3 inline-block underline underline-offset-4" href="https://www.iso.org/standard/86798.html" target="_blank" rel="noreferrer">استاندارد مشخصات زعفران ISO 3632-1</a>
           </details>
           <Link href={pagePath('shop')} className="btn-solid mt-6">دیدن همه محصولات<ArrowLeft aria-hidden="true" className="h-4 w-4" /></Link>
+        </section>
+
+        <section className="mt-12" aria-labelledby="practical-guides">
+          <h2 id="practical-guides" className="text-xl font-bold text-cream-50">راهنماهای کاربردی زعفران</h2>
+          <ul className="mt-4 space-y-3">
+            {GUIDE_ARTICLES.map(article => <li key={article.slug}>
+              <Link className="inline-flex min-h-11 items-center text-accent underline underline-offset-4" href={article.path}>{article.title}</Link>
+            </li>)}
+          </ul>
         </section>
       </div>
     </main>

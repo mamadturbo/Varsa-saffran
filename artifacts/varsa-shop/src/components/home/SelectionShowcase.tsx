@@ -15,7 +15,7 @@ export function SelectionShowcase() {
         <div className="grid items-center gap-14 lg:grid-cols-2">
           {/* Text */}
           <div>
-            <h2 className="font-display text-3xl font-bold leading-tight text-cream-50 sm:text-4xl">
+            <h2 className="font-display text-3xl font-bold text-cream-50 sm:text-4xl">
               مشخصات <span className="gold-text">همان بسته را بخوانید</span>
             </h2>
             <ArabesqueDivider className="mt-5 justify-start" />
